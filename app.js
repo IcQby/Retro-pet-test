@@ -521,24 +521,23 @@ function startCakeFeedSequence() {
   let cakeW = 100;
   let cakeH = getCakeHeight(cakeImgs[0], cakeW);
   let cakeX = (canvas.width - cakeW) / 2;
-  let cakeY = Math.round(canvas.height * (2 / 3)) - cakeH / 2;
+  // 2/3 down, but keep bottom of cake at that y
+  let cakeBottomY = Math.round(canvas.height * 2 / 3);
+  let cakeY = cakeBottomY - cakeH;
+
   let cakeGroundY = getGroundY() + PET_HEIGHT - cakeH; // bottom of cake at groundY+PET_HEIGHT == bottom of canvas
 
   cakeFeedActive = true;
   cakeFeedState = {
-    phase: "idleWait", // idleWait, falling, pigJumpToCake, pigStopAndFall, preEatPause, eating, done
+    phase: "cakeInAir", // cakeInAir, wallWait, cakeFall, pigJumpToCake, pigStopAndFall, preEatPause, eating, done
     cakeX, cakeY, cakeW, cakeH, cakeGroundY,
     cakeImgIdx: 0,
     cakeFadeAlpha: 1,
-    pigStarted: false,
-    pigStoppedAtGround: false,
-    pigVx: vx,
-    pigVy: vy,
     pigStartDirection: direction,
-    eatTimer: null,
-    eatStep: 0,
     eatTimers: [],
-    eatStartTime: null
+    eatStep: 0,
+    eatStartTime: null,
+    fadeStart: null
   };
 }
 
@@ -546,30 +545,44 @@ function updateCakeFeed() {
   if (!cakeFeedActive) return;
   let st = cakeFeedState;
 
-  // 1. Normal pig jumping until it hits a wall and lands
-  if (st.phase === "idleWait") {
-    // Let pig do normal idleJumping
-    if (!st.pigStarted) {
-      // Mark that cake is ready but pig not yet stopped at wall
-      st.pigStarted = true;
+  // 1. Cake floats in air. Pig jumps as normal, until pig hits wall & lands.
+  if (st.phase === "cakeInAir") {
+    // Let pig do normal jumping.
+    vy += gravity;
+    petX += vx;
+    petY += vy;
+
+    // Boundaries and wall detection
+    let hitWall = false;
+    if (petX <= 0) {
+      petX = 0;
+      direction = 1;
+      vx = 0;
+      hitWall = true;
+      currentImg = petImgRight;
+    } else if (petX + PET_WIDTH >= canvas.width) {
+      petX = canvas.width - PET_WIDTH;
+      direction = -1;
+      vx = 0;
+      hitWall = true;
+      currentImg = petImgLeft;
     }
-    // Wait for pig to hit wall and land
-    // Only when pigY >= groundY and pig is at left or right wall
-    let atWall = (petX <= 0 || petX + PET_WIDTH >= canvas.width);
-    let onGround = (petY >= getGroundY());
-    if (atWall && onGround) {
-      vx = 0; vy = 0;
-      st.pigStoppedAtGround = true;
-      st.pigStopX = petX;
-      st.pigStopY = petY;
-      st.phase = "falling";
+
+    // On ground, after wall
+    let onGround = petY >= getGroundY();
+    if (onGround) {
+      petY = getGroundY();
+      if (hitWall) {
+        vx = 0; vy = 0;
+        st.phase = "wallWait";
+      } else if (!hitWall && !isSleeping && !sleepSequenceActive && !sleepRequested && !pendingWake) {
+        startIdleJump();
+      }
     }
   }
-  // 2. Cake falls down until aligned with groundY
-  else if (st.phase === "falling") {
-    // Keep the cake centered horizontally, just in case resize
-    st.cakeX = (canvas.width - st.cakeW) / 2;
-    // Cake falls until bottom is at groundY + PET_HEIGHT
+  // 2. Pig is still after hitting wall/landing. Cake then falls.
+  else if (st.phase === "wallWait") {
+    // Pig stands still, cake falls
     if (st.cakeY < st.cakeGroundY) {
       st.cakeY += 14;
       if (st.cakeY > st.cakeGroundY) st.cakeY = st.cakeGroundY;
@@ -577,12 +590,10 @@ function updateCakeFeed() {
       st.cakeY = st.cakeGroundY;
       st.phase = "pigJumpToCake";
       // Start pig's jump toward cake
-      // Compute direction: pigX center vs cakeX center
       let pigCenter = petX + PET_WIDTH / 2;
       let cakeCenter = st.cakeX + st.cakeW / 2;
       direction = (pigCenter < cakeCenter) ? 1 : -1;
       currentImg = direction === 1 ? petImgRight : petImgLeft;
-      // Set jump toward cake
       const speed = 6, angle = Math.PI * 65 / 180;
       vx = direction * speed * Math.cos(angle);
       vy = -speed * Math.sin(angle);
@@ -593,20 +604,17 @@ function updateCakeFeed() {
     vy += gravity;
     petX += vx;
     petY += vy;
-
     // Boundaries
     if (petX < 0) { petX = 0; }
     if (petX + PET_WIDTH > canvas.width) { petX = canvas.width - PET_WIDTH; }
 
     // Check for side collision with cake
     let pigFront = direction === 1 ? petX + PET_WIDTH : petX;
-    let cakeSide = direction === 1 ? st.cakeX : st.cakeX + st.cakeW;
     let hitCake = false;
     if (direction === 1 && pigFront >= st.cakeX) hitCake = true;
     if (direction === -1 && pigFront <= st.cakeX + st.cakeW) hitCake = true;
 
     if (hitCake) {
-      // Stop horizontal, let pig fall vertically only
       vx = 0;
       st.phase = "pigStopAndFall";
     }
@@ -627,25 +635,11 @@ function updateCakeFeed() {
     if (performance.now() - st.eatStartTime >= 1000) {
       st.phase = "eating";
       st.eatStep = 0;
-      st.cakeImgIdx = 1;
-      st.eatTimers.push(setTimeout(() => {
-        st.cakeImgIdx = 2;
-        st.eatStep = 1;
-        st.eatTimers.push(setTimeout(() => {
-          st.cakeImgIdx = 3;
-          st.eatStep = 2;
-          st.eatTimers.push(setTimeout(() => {
-            st.eatStep = 3;
-            st.eatTimers.push(setTimeout(() => {
-              st.phase = "done";
-              st.fadeStart = performance.now();
-            }, 1000));
-          }, 1500));
-        }, 1500));
-      }, 500));
+      st.cakeImgIdx = 0;
+      doEatingSequence(st);
     }
   }
-  // 6. Fade cake out
+  // 6. Eating handled by timers set in doEatingSequence
   else if (st.phase === "done") {
     let elapsed = performance.now() - st.fadeStart;
     st.cakeFadeAlpha = Math.max(0, 1 - elapsed / 2000);
@@ -661,6 +655,42 @@ function updateCakeFeed() {
   }
 }
 
+function doEatingSequence(st) {
+  // Sequence: eat (eat img, .5s), idle (cake2, 1s), eat (.5s), idle (cake3, 1s), eat (.5s), idle (cake4, 1s), fade out (2s)
+  function setPigIdle() {
+    currentImg = direction === 1 ? petImgRight : petImgLeft;
+  }
+  function setPigEat() {
+    currentImg = direction === 1 ? pigRightEatImg : pigLeftEatImg;
+  }
+  setPigEat();
+  st.cakeImgIdx = 0;
+  st.eatTimers.push(setTimeout(() => {
+    setPigIdle();
+    st.cakeImgIdx = 1;
+    st.eatTimers.push(setTimeout(() => {
+      setPigEat();
+      st.cakeImgIdx = 1;
+      st.eatTimers.push(setTimeout(() => {
+        setPigIdle();
+        st.cakeImgIdx = 2;
+        st.eatTimers.push(setTimeout(() => {
+          setPigEat();
+          st.cakeImgIdx = 2;
+          st.eatTimers.push(setTimeout(() => {
+            setPigIdle();
+            st.cakeImgIdx = 3;
+            st.eatTimers.push(setTimeout(() => {
+              st.phase = "done";
+              st.fadeStart = performance.now();
+            }, 1000));
+          }, 500));
+        }, 1000));
+      }, 500));
+    }, 1000));
+  }, 500));
+}
+
 function drawCakeFeed() {
   if (!cakeFeedActive) return;
   let st = cakeFeedState;
@@ -671,11 +701,7 @@ function drawCakeFeed() {
   let cakeY = st.cakeY;
   ctx.drawImage(cakeImgs[imgIdx], st.cakeX, cakeY, st.cakeW, cakeH);
   ctx.globalAlpha = 1;
-  // Draw pig (eating animation if eating)
-  let pigImg = st.pigStartDirection === 1 ? petImgRight : petImgLeft;
-  if (st.phase === "eating" && (st.eatStep === 0 || st.eatStep === 1 || st.eatStep === 2)) {
-    pigImg = st.pigStartDirection === 1 ? pigRightEatImg : pigLeftEatImg;
-  }
+  let pigImg = currentImg;
   ctx.drawImage(pigImg, petX, petY, PET_WIDTH, PET_HEIGHT);
   ctx.restore();
 }
