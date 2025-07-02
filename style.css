@@ -1,11 +1,4 @@
-/* added no select so text cannot be selected */
-
-.noselect {
-  user-select: none; /* Standard syntax */
-  -webkit-user-select: none; /* Chrome, Safari */
-  -moz-user-select: none;    /* Firefox */
-  -ms-user-select: none;     /* IE10+/Edge */
-}
+/*badded no selectbto body so text cannot be selected */
 
 body {
   background-color: #000;
@@ -14,6 +7,10 @@ body {
   text-align: center;
   margin: 0;
   padding: 0;
+  user-select: none; /* Standard syntax */
+  -webkit-user-select: none; /* Chrome, Safari */
+  -moz-user-select: none;    /* Firefox */
+  -ms-user-select: none;     /* IE10+/Edge */
 }
 
 button {
