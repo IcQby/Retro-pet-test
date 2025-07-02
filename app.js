@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v5.1";
+const versionid = "v5.2";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -316,7 +316,7 @@ function pigHitsBallFront(ball) {
 }
 
 function kickBallFromPig(ball) {
-  const baseSpeed = Math.max(Math.abs(vx), 4);
+  const baseSpeed = Math.max(Math.abs(vx), 2);
   const speed = (3 + Math.random() * 1.5) * baseSpeed;
   const dir = direction;
   if (Math.random() < 2 / 3) {
