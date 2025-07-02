@@ -3,13 +3,11 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v6.6";
+const versionid = "v6.7";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
 // ===============================
-
-// --- Pet Images ---
 const petImgLeft = new Image();
 const petImgRight = new Image();
 const petImgSleep = new Image();
@@ -24,23 +22,16 @@ const pigRightEatImg = new Image();
 pigLeftEatImg.src = 'icon/pig-left-eat.png';
 pigRightEatImg.src = 'icon/pig-right-eat.png';
 
-// --- Cake Images ---
 const cakeImgs = [
-  new Image(), // cake1
-  new Image(), // cake2
-  new Image(), // cake3
-  new Image(), // cake4
+  new Image(), new Image(), new Image(), new Image()
 ];
 cakeImgs[0].src = 'icon/cake1.png';
 cakeImgs[1].src = 'icon/cake2.png';
 cakeImgs[2].src = 'icon/cake3.png';
 cakeImgs[3].src = 'icon/cake4.png';
 
-// --- Ball Images ---
 const ballImages = [
-  'icon/ball1.png',
-  'icon/ball2.png',
-  'icon/ball3.png'
+  'icon/ball1.png', 'icon/ball2.png', 'icon/ball3.png'
 ];
 const BALL_DISPLAY_SIZE = 50;
 const BALL_RADIUS = BALL_DISPLAY_SIZE / 2;
@@ -49,28 +40,25 @@ let ballImgObjects = [];
 function loadImages(images) {
   return Promise.all(
     images.map(
-      img =>
-        new Promise((resolve, reject) => {
-          img.onload = resolve;
-          img.onerror = reject;
-        })
+      img => new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      })
     )
   );
 }
-
 function loadBallImages() {
   return Promise.all(
     ballImages.map(
-      (src, i) =>
-        new Promise((resolve, reject) => {
-          const img = new Image();
-          img.src = src;
-          img.onload = () => {
-            ballImgObjects[i] = img;
-            resolve();
-          };
-          img.onerror = reject;
-        })
+      (src, i) => new Promise((resolve, reject) => {
+        const img = new Image();
+        img.src = src;
+        img.onload = () => {
+          ballImgObjects[i] = img;
+          resolve();
+        };
+        img.onerror = reject;
+      })
     )
   );
 }
@@ -85,13 +73,7 @@ const PET_WIDTH = 102, PET_HEIGHT = 102;
 // ===============================
 // SECTION 3: STATE OBJECTS
 // ===============================
-const pet = {
-  happiness: 50,
-  hunger: 50,
-  cleanliness: 50,
-  health: 50,
-};
-
+const pet = { happiness: 50, hunger: 50, cleanliness: 50, health: 50 };
 let petX, petY;
 let vx = 0, vy = 0, gravity = 0.4;
 let direction = -1;
@@ -105,10 +87,8 @@ let resumeImg;
 let pendingSleep = false;
 let pendingWake = false;
 let wakeTimeoutId = null;
-
 let actionInProgress = false;
 let currentAction = null;
-
 let wasInOverlap = false;
 let inOverlap = false;
 let overlapPauseActive = false;
@@ -124,22 +104,15 @@ let cakeFeedState = null;
 function masterUpdateDrawRoutine() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawBackground();
-
-  updateBall();
-  drawBall();
-  updateBallOverlapPause();
-
+  updateBall(); drawBall(); updateBallOverlapPause();
   if (cakeFeedActive) {
     updateCakeFeed();
     drawCakeFeed();
   } else {
     idleJumping();
-    if (actionInProgress && currentAction) {
-      actionMovement();
-    }
+    if (actionInProgress && currentAction) actionMovement();
     ctx.drawImage(currentImg, petX, petY, PET_WIDTH, PET_HEIGHT);
   }
-
   requestAnimationFrame(masterUpdateDrawRoutine);
 }
 
@@ -148,107 +121,58 @@ function masterUpdateDrawRoutine() {
 // ===============================
 function idleJumping() {
   if (!isSleeping && !sleepSequenceActive && !pendingWake && !cakeFeedActive) {
-    vy += gravity;
-    petX += vx;
-    petY += vy;
+    vy += gravity; petX += vx; petY += vy;
   }
-
   if (!isSleeping && !sleepSequenceActive && !pendingWake && !cakeFeedActive) {
-    if (petX <= 0) {
-      petX = 0;
-      direction = 1;
-      vx = Math.abs(vx);
-      currentImg = petImgRight;
-    } else if (petX + PET_WIDTH >= canvas.width) {
-      petX = canvas.width - PET_WIDTH;
-      direction = -1;
-      vx = -Math.abs(vx);
-      currentImg = petImgLeft;
-    }
+    if (petX <= 0) { petX = 0; direction = 1; vx = Math.abs(vx); currentImg = petImgRight; }
+    else if (petX + PET_WIDTH >= canvas.width) { petX = canvas.width - PET_WIDTH; direction = -1; vx = -Math.abs(vx); currentImg = petImgLeft; }
   }
-
   let groundY = getGroundY();
   if (petY >= groundY && !cakeFeedActive) {
     petY = groundY;
-
     if (pendingSleep) {
-      vx = 0;
-      vy = 0;
-      pendingSleep = false;
-      startSleepSequence();
+      vx = 0; vy = 0; pendingSleep = false; startSleepSequence();
     } else if (!isSleeping && !sleepSequenceActive && !sleepRequested && !pendingWake && !actionInProgress) {
       startIdleJump();
     }
   }
 }
-
 function startIdleJump() {
   const speed = 6, angle = Math.PI * 65 / 180;
   vx = direction * speed * Math.cos(angle);
   vy = -speed * Math.sin(angle);
 }
-
-function getGroundY() {
-  return canvas.height - PET_HEIGHT;
-}
+function getGroundY() { return canvas.height - PET_HEIGHT; }
 
 // ===============================
 // SECTION 6: PLAY SEQUENCE
 // ===============================
 let ball = null;
-const ballGravity = 0.5;
-const ballAirFriction = 0.99;
-const ballBounce = 0.7;
-let showBall = false;
-let ballAlpha = 1;
-let showBallTimeout = null;
-let fadeBallTimeout = null;
-
+const ballGravity = 0.5, ballAirFriction = 0.99, ballBounce = 0.7;
+let showBall = false, ballAlpha = 1, showBallTimeout = null, fadeBallTimeout = null;
 function showBallForDuration() {
-  clearTimeout(showBallTimeout);
-  clearTimeout(fadeBallTimeout);
-  showBall = true;
-  ballAlpha = 1;
-
+  clearTimeout(showBallTimeout); clearTimeout(fadeBallTimeout);
+  showBall = true; ballAlpha = 1;
   const imgIndex = Math.floor(Math.random() * ballImgObjects.length);
   const img = ballImgObjects[imgIndex];
-
   const margin = BALL_RADIUS + 5;
-  const minX = margin;
-  const maxX = canvas.width - margin;
-  const minY = margin;
-  const maxY = Math.floor(canvas.height / 2) - margin;
+  const minX = margin, maxX = canvas.width - margin, minY = margin, maxY = Math.floor(canvas.height / 2) - margin;
   const randX = minX + Math.random() * (maxX - minX);
   const randY = minY + Math.random() * (maxY - minY);
   const randVx = (Math.random() - 0.5) * 5;
   const randVy = (Math.random() - 0.2) * 3;
-
-  ball = {
-    x: randX,
-    y: randY,
-    vx: randVx,
-    vy: randVy,
-    radius: BALL_RADIUS,
-    img: img,
-    angle: 0
-  };
-
+  ball = { x: randX, y: randY, vx: randVx, vy: randVy, radius: BALL_RADIUS, img: img, angle: 0 };
   showBallTimeout = setTimeout(() => {
     let fadeStart = Date.now();
     function fadeStep() {
       let elapsed = Date.now() - fadeStart;
       ballAlpha = Math.max(0, 1 - (elapsed / 5000));
-      if (ballAlpha > 0) {
-        fadeBallTimeout = setTimeout(fadeStep, 16);
-      } else {
-        showBall = false;
-        ballAlpha = 1;
-      }
+      if (ballAlpha > 0) fadeBallTimeout = setTimeout(fadeStep, 16);
+      else { showBall = false; ballAlpha = 1; }
     }
     fadeStep();
   }, 10000);
 }
-
 function updateBall() {
   if (!showBall || !ball) return;
   ball.vy += ballGravity;
@@ -257,7 +181,6 @@ function updateBall() {
   ball.x += ball.vx;
   ball.y += ball.vy;
   ball.angle += ball.vx / BALL_RADIUS;
-
   const pigGroundY = getGroundY();
   const ballRestY = pigGroundY + PET_HEIGHT - BALL_RADIUS;
   if (ball.y + BALL_RADIUS > ballRestY) {
@@ -265,37 +188,21 @@ function updateBall() {
     ball.vy *= -ballBounce;
     if (Math.abs(ball.vy) < 1) ball.vy = 0;
   }
-  if (ball.x - BALL_RADIUS < 0) {
-    ball.x = BALL_RADIUS;
-    ball.vx *= -ballBounce;
-  }
-  if (ball.x + BALL_RADIUS > canvas.width) {
-    ball.x = canvas.width - BALL_RADIUS;
-    ball.vx *= -ballBounce;
-  }
+  if (ball.x - BALL_RADIUS < 0) { ball.x = BALL_RADIUS; ball.vx *= -ballBounce; }
+  if (ball.x + BALL_RADIUS > canvas.width) { ball.x = canvas.width - BALL_RADIUS; ball.vx *= -ballBounce; }
 }
-
 function drawBall() {
   if (!showBall || !ball) return;
   ctx.save();
   ctx.globalAlpha = ballAlpha;
   if (ball.img) {
-    ctx.save();
-    ctx.translate(ball.x, ball.y);
-    ctx.rotate(ball.angle || 0);
-    ctx.drawImage(
-      ball.img,
-      -BALL_RADIUS,
-      -BALL_RADIUS,
-      BALL_DISPLAY_SIZE,
-      BALL_DISPLAY_SIZE
-    );
+    ctx.save(); ctx.translate(ball.x, ball.y); ctx.rotate(ball.angle || 0);
+    ctx.drawImage(ball.img, -BALL_RADIUS, -BALL_RADIUS, BALL_DISPLAY_SIZE, BALL_DISPLAY_SIZE);
     ctx.restore();
   }
   ctx.globalAlpha = 1;
   ctx.restore();
 }
-
 function checkPigBallOverlap() {
   if (!showBall || !ball) return false;
   const pigLeft = petX, pigRight = petX + PET_WIDTH;
@@ -307,22 +214,17 @@ function checkPigBallOverlap() {
   const distSq = dx * dx + dy * dy;
   return distSq < r * r;
 }
-
 function pigHitsBallFront(ball) {
   const pigLeft = petX, pigRight = petX + PET_WIDTH;
   const bx = ball.x, r = ball.radius;
   const closestX = Math.max(pigLeft, Math.min(bx, pigRight));
   const dx = bx - closestX;
   if (dx * dx < r * r) {
-    if (direction === 1) {
-      return bx > pigRight - r * 0.5 && bx < pigRight + r;
-    } else {
-      return bx < pigLeft + r * 0.5 && bx > pigLeft - r;
-    }
+    if (direction === 1) return bx > pigRight - r * 0.5 && bx < pigRight + r;
+    else return bx < pigLeft + r * 0.5 && bx > pigLeft - r;
   }
   return false;
 }
-
 function kickBallFromPig(ball) {
   const baseSpeed = Math.max(Math.abs(vx), 2);
   const speed = (3 + Math.random() * 1.5) * baseSpeed;
@@ -337,36 +239,21 @@ function kickBallFromPig(ball) {
     ball.vy = -speed * Math.sin(angle);
   }
 }
-
 function updateBallOverlapPause() {
   inOverlap = checkPigBallOverlap();
   let pigCenterX = petX + PET_WIDTH / 2;
   let ballCenterX = ball ? ball.x : null;
-
   if (showBall && ball) {
-    if (inOverlap && !wasInOverlap) {
-      overlapPauseActive = true;
-      overlapLastEndDistance = Infinity;
-    }
-    if (inOverlap) {
-      overlapLastEndDistance = Infinity;
-    }
-    if (!inOverlap && wasInOverlap) {
-      if (ball) overlapLastEndDistance = Math.abs(pigCenterX - ballCenterX);
-    }
+    if (inOverlap && !wasInOverlap) { overlapPauseActive = true; overlapLastEndDistance = Infinity; }
+    if (inOverlap) { overlapLastEndDistance = Infinity; }
+    if (!inOverlap && wasInOverlap) { if (ball) overlapLastEndDistance = Math.abs(pigCenterX - ballCenterX); }
     if (overlapPauseActive && !inOverlap && ball) {
       overlapLastEndDistance = Math.abs(pigCenterX - ballCenterX);
-      if (overlapLastEndDistance >= PET_WIDTH * 0.5) {
-        overlapPauseActive = false;
-      }
+      if (overlapLastEndDistance >= PET_WIDTH * 0.5) { overlapPauseActive = false; }
     }
-    if (!showBall) {
-      overlapPauseActive = false;
-      overlapLastEndDistance = Infinity;
-    }
+    if (!showBall) { overlapPauseActive = false; overlapLastEndDistance = Infinity; }
   } else {
-    overlapPauseActive = false;
-    overlapLastEndDistance = Infinity;
+    overlapPauseActive = false; overlapLastEndDistance = Infinity;
   }
   wasInOverlap = inOverlap;
 }
@@ -376,34 +263,19 @@ function updateBallOverlapPause() {
 // ===============================
 function actionMovement() {
   if (currentAction === "play") {
-    // Play/ball chase logic
     if (!isSleeping && !sleepSequenceActive && !pendingWake && showBall && ball && !overlapPauseActive) {
       const pigCenterX = petX + PET_WIDTH / 2;
       const ballX = ball.x;
       const chaseSpeed = 3;
       const deadzone = BALL_RADIUS + 10;
       if (Math.abs(ballX - pigCenterX) > deadzone) {
-        if (ballX > pigCenterX) {
-          direction = 1;
-          vx = chaseSpeed;
-          currentImg = petImgRight;
-        } else {
-          direction = -1;
-          vx = -chaseSpeed;
-          currentImg = petImgLeft;
-        }
-      } else {
-        vx = 0;
-        currentImg = direction === 1 ? petImgRight : petImgLeft;
-      }
+        if (ballX > pigCenterX) { direction = 1; vx = chaseSpeed; currentImg = petImgRight; }
+        else { direction = -1; vx = -chaseSpeed; currentImg = petImgLeft; }
+      } else { vx = 0; currentImg = direction === 1 ? petImgRight : petImgLeft; }
     }
-    // Ball kick logic
     if (!isSleeping && !sleepSequenceActive && !pendingWake && showBall && ball) {
-      if (pigHitsBallFront(ball)) {
-        kickBallFromPig(ball);
-      }
+      if (pigHitsBallFront(ball)) { kickBallFromPig(ball); }
     }
-    // Ground landing and ball chase jump logic
     let groundY = getGroundY();
     if (petY >= groundY) {
       petY = groundY;
@@ -420,14 +292,10 @@ function actionMovement() {
     }
   }
 }
-
 function shouldReverseToChaseBall() {
   if (!showBall || !ball) return false;
   const pigCenterX = petX + PET_WIDTH / 2;
-  if ((direction === 1 && pigCenterX > ball.x) ||
-    (direction === -1 && pigCenterX < ball.x)) {
-    return true;
-  }
+  if ((direction === 1 && pigCenterX > ball.x) || (direction === -1 && pigCenterX < ball.x)) return true;
   return false;
 }
 
@@ -435,35 +303,20 @@ function shouldReverseToChaseBall() {
 // SECTION 8: SLEEP SEQUENCE
 // ===============================
 function startSleepSequence() {
-  sleepSequenceStep = 1;
-  sleepSequenceActive = true;
-  sleepRequested = false;
-
+  sleepSequenceStep = 1; sleepSequenceActive = true; sleepRequested = false;
   let imgA = resumeImg;
   let imgB = (resumeImg === petImgRight) ? petImgLeft : petImgRight;
   let sleepImg = (resumeImg === petImgRight) ? petImgSleepR : petImgSleep;
-
   currentImg = imgA;
-
   setTimeout(() => {
-    currentImg = imgB;
-    setTimeout(() => {
-      currentImg = imgA;
-      setTimeout(() => {
-        currentImg = imgB;
-        setTimeout(() => {
-          currentImg = sleepImg;
-          isSleeping = true;
-          sleepSequenceActive = false;
+    currentImg = imgB; setTimeout(() => {
+      currentImg = imgA; setTimeout(() => {
+        currentImg = imgB; setTimeout(() => {
+          currentImg = sleepImg; isSleeping = true; sleepSequenceActive = false;
           setTimeout(() => {
-            currentImg = imgA;
-            isSleeping = false;
-            pendingWake = true;
-            vx = 0; vy = 0;
+            currentImg = imgA; isSleeping = false; pendingWake = true; vx = 0; vy = 0;
             wakeTimeoutId = setTimeout(() => {
-              pendingWake = false;
-              sleepSequenceStep = 0;
-              sleepSequenceActive = false;
+              pendingWake = false; sleepSequenceStep = 0; sleepSequenceActive = false;
               direction = resumeDirection;
               currentImg = (direction === 1) ? petImgRight : petImgLeft;
               startIdleJump();
@@ -479,24 +332,17 @@ function startSleepSequence() {
 // SECTION 9: DISABLE BUTTONS DURING ACTIONS
 // ===============================
 function setButtonsDisabled(disabled) {
-  document.querySelectorAll('button').forEach(btn => {
-    btn.disabled = disabled;
-  });
+  document.querySelectorAll('button').forEach(btn => { btn.disabled = disabled; });
 }
-
 function effectGuard(fn, actionName) {
   return function (...args) {
     if (actionInProgress || cakeFeedActive) return;
-    actionInProgress = true;
-    currentAction = actionName;
-    setButtonsDisabled(true);
-    fn.apply(this, args);
+    actionInProgress = true; currentAction = actionName;
+    setButtonsDisabled(true); fn.apply(this, args);
   };
 }
-
 function finishAction() {
-  actionInProgress = false;
-  currentAction = null;
+  actionInProgress = false; currentAction = null;
   setButtonsDisabled(false);
 }
 
@@ -515,18 +361,12 @@ function getCakeHeight(img, width) {
   if (!img || !img.complete || !img.naturalWidth) return 75;
   return img.naturalHeight * (width / img.naturalWidth);
 }
-
 function startCakeFeedSequence() {
-  // Cake appears at halfway horizontally, 2/3 from bottom
   let cakeW = 100;
   let cakeH = getCakeHeight(cakeImgs[0], cakeW);
   let cakeX = (canvas.width - cakeW) / 2;
-  // 2/3 down, but keep bottom of cake at that y
-  let cakeBottomY = Math.round(canvas.height * 2 / 3);
-  let cakeY = cakeBottomY - cakeH;
-
-  let cakeGroundY = getGroundY() + PET_HEIGHT - cakeH; // bottom of cake at groundY+PET_HEIGHT == bottom of canvas
-
+  let cakeY = 20;
+  let cakeGroundY = getGroundY() + PET_HEIGHT - cakeH;
   cakeFeedActive = true;
   cakeFeedState = {
     phase: "cakeInAir", // cakeInAir, wallWait, cakeFall, pigJumpToCake, pigStopAndFall, preEatPause, eating, done
@@ -540,56 +380,32 @@ function startCakeFeedSequence() {
     fadeStart: null
   };
 }
-
 function updateCakeFeed() {
   if (!cakeFeedActive) return;
   let st = cakeFeedState;
-
-  // 1. Cake floats in air. Pig jumps as normal, until pig hits wall & lands.
+  // 1. Cake floats near top. Pig jumps as normal, until pig hits wall & lands.
   if (st.phase === "cakeInAir") {
-    // Let pig do normal jumping.
-    vy += gravity;
-    petX += vx;
-    petY += vy;
-
+    vy += gravity; petX += vx; petY += vy;
     // Boundaries and wall detection
     let hitWall = false;
-    if (petX <= 0) {
-      petX = 0;
-      direction = 1;
-      vx = 0;
-      hitWall = true;
-      currentImg = petImgRight;
-    } else if (petX + PET_WIDTH >= canvas.width) {
-      petX = canvas.width - PET_WIDTH;
-      direction = -1;
-      vx = 0;
-      hitWall = true;
-      currentImg = petImgLeft;
-    }
-
+    if (petX <= 0) { petX = 0; direction = 1; vx = 0; hitWall = true; currentImg = petImgRight; }
+    else if (petX + PET_WIDTH >= canvas.width) { petX = canvas.width - PET_WIDTH; direction = -1; vx = 0; hitWall = true; currentImg = petImgLeft; }
     // On ground, after wall
     let onGround = petY >= getGroundY();
     if (onGround) {
       petY = getGroundY();
-      if (hitWall) {
-        vx = 0; vy = 0;
-        st.phase = "wallWait";
-      } else if (!hitWall && !isSleeping && !sleepSequenceActive && !sleepRequested && !pendingWake) {
-        startIdleJump();
-      }
+      if (hitWall) { vx = 0; vy = 0; st.phase = "wallWait"; }
+      else if (!hitWall && !isSleeping && !sleepSequenceActive && !sleepRequested && !pendingWake) startIdleJump();
     }
   }
   // 2. Pig is still after hitting wall/landing. Cake then falls.
   else if (st.phase === "wallWait") {
-    // Pig stands still, cake falls
     if (st.cakeY < st.cakeGroundY) {
       st.cakeY += 14;
       if (st.cakeY > st.cakeGroundY) st.cakeY = st.cakeGroundY;
     } else {
       st.cakeY = st.cakeGroundY;
       st.phase = "pigJumpToCake";
-      // Start pig's jump toward cake
       let pigCenter = petX + PET_WIDTH / 2;
       let cakeCenter = st.cakeX + st.cakeW / 2;
       direction = (pigCenter < cakeCenter) ? 1 : -1;
@@ -604,31 +420,24 @@ function updateCakeFeed() {
     vy += gravity;
     petX += vx;
     petY += vy;
-    // Boundaries
-    if (petX < 0) { petX = 0; }
-    if (petX + PET_WIDTH > canvas.width) { petX = canvas.width - PET_WIDTH; }
-
+    // Boundaries pig can't go off canvas
+    if (petX < 0) petX = 0;
+    if (petX + PET_WIDTH > canvas.width) petX = canvas.width - PET_WIDTH;
     // Check for side collision with cake
     let pigFront = direction === 1 ? petX + PET_WIDTH : petX;
     let hitCake = false;
     if (direction === 1 && pigFront >= st.cakeX) hitCake = true;
     if (direction === -1 && pigFront <= st.cakeX + st.cakeW) hitCake = true;
-
     if (hitCake) {
       vx = 0;
       st.phase = "pigStopAndFall";
     }
   }
-  // 4. Pig falls vertically until groundY next to cake
+  // 4. Pig falls vertically until groundY next to cake, never goes below groundY
   else if (st.phase === "pigStopAndFall") {
     vy += gravity;
     petY += vy;
-    if (petY >= getGroundY()) {
-      petY = getGroundY();
-      vy = 0;
-      st.phase = "preEatPause";
-      st.eatStartTime = performance.now();
-    }
+    if (petY >= getGroundY()) { petY = getGroundY(); vy = 0; st.phase = "preEatPause"; st.eatStartTime = performance.now(); }
   }
   // 5. Pause for 1s before eating
   else if (st.phase === "preEatPause") {
@@ -639,7 +448,6 @@ function updateCakeFeed() {
       doEatingSequence(st);
     }
   }
-  // 6. Eating handled by timers set in doEatingSequence
   else if (st.phase === "done") {
     let elapsed = performance.now() - st.fadeStart;
     st.cakeFadeAlpha = Math.max(0, 1 - elapsed / 2000);
@@ -654,35 +462,22 @@ function updateCakeFeed() {
     }
   }
 }
-
 function doEatingSequence(st) {
-  // Sequence: eat (eat img, .5s), idle (cake2, 1s), eat (.5s), idle (cake3, 1s), eat (.5s), idle (cake4, 1s), fade out (2s)
-  function setPigIdle() {
-    currentImg = direction === 1 ? petImgRight : petImgLeft;
-  }
-  function setPigEat() {
-    currentImg = direction === 1 ? pigRightEatImg : pigLeftEatImg;
-  }
-  setPigEat();
-  st.cakeImgIdx = 0;
+  function setPigIdle() { currentImg = direction === 1 ? petImgRight : petImgLeft; }
+  function setPigEat() { currentImg = direction === 1 ? pigRightEatImg : pigLeftEatImg; }
+  setPigEat(); st.cakeImgIdx = 0;
   st.eatTimers.push(setTimeout(() => {
-    setPigIdle();
-    st.cakeImgIdx = 1;
+    setPigIdle(); st.cakeImgIdx = 1;
     st.eatTimers.push(setTimeout(() => {
-      setPigEat();
-      st.cakeImgIdx = 1;
+      setPigEat(); st.cakeImgIdx = 1;
       st.eatTimers.push(setTimeout(() => {
-        setPigIdle();
-        st.cakeImgIdx = 2;
+        setPigIdle(); st.cakeImgIdx = 2;
         st.eatTimers.push(setTimeout(() => {
-          setPigEat();
-          st.cakeImgIdx = 2;
+          setPigEat(); st.cakeImgIdx = 2;
           st.eatTimers.push(setTimeout(() => {
-            setPigIdle();
-            st.cakeImgIdx = 3;
+            setPigIdle(); st.cakeImgIdx = 3;
             st.eatTimers.push(setTimeout(() => {
-              st.phase = "done";
-              st.fadeStart = performance.now();
+              st.phase = "done"; st.fadeStart = performance.now();
             }, 1000));
           }, 500));
         }, 1000));
@@ -690,7 +485,6 @@ function doEatingSequence(st) {
     }, 1000));
   }, 500));
 }
-
 function drawCakeFeed() {
   if (!cakeFeedActive) return;
   let st = cakeFeedState;
@@ -698,7 +492,9 @@ function drawCakeFeed() {
   ctx.globalAlpha = st.cakeFadeAlpha;
   let imgIdx = st.cakeImgIdx || 0;
   let cakeH = getCakeHeight(cakeImgs[imgIdx], st.cakeW);
-  let cakeY = st.cakeY;
+  let cakeY = (st.phase === "cakeInAir" || st.phase === "wallWait" || st.phase === "cakeFall") ? st.cakeY : getGroundY() + PET_HEIGHT - cakeH;
+  if (st.phase === "cakeInAir" || st.phase === "wallWait") cakeY = st.cakeY;
+  else cakeY = st.cakeGroundY;
   ctx.drawImage(cakeImgs[imgIdx], st.cakeX, cakeY, st.cakeW, cakeH);
   ctx.globalAlpha = 1;
   let pigImg = currentImg;
@@ -719,18 +515,14 @@ window.playWithPet = effectGuard(function () {
   pet.hunger = Math.min(100, pet.hunger + 5);
   updateStats();
   showBallForDuration();
-  setTimeout(() => {
-    finishAction();
-  }, 15000);
+  setTimeout(() => finishAction(), 15000);
 }, "play");
 
 window.cleanPet = effectGuard(function () {
   pet.cleanliness = 100;
   pet.happiness = Math.min(100, pet.happiness + 5);
   updateStats();
-  setTimeout(() => {
-    finishAction();
-  }, 2000);
+  setTimeout(() => finishAction(), 2000);
 }, "clean");
 
 window.sleepPet = effectGuard(function () {
@@ -743,18 +535,14 @@ window.sleepPet = effectGuard(function () {
     resumeImg = (direction === 1) ? petImgRight : petImgLeft;
     pendingSleep = true;
   }
-  setTimeout(() => {
-    finishAction();
-  }, 9000);
+  setTimeout(() => finishAction(), 9000);
 }, "sleep");
 
 window.healPet = effectGuard(function () {
   pet.health = 100;
   pet.happiness = Math.min(100, pet.happiness + 5);
   updateStats();
-  setTimeout(() => {
-    finishAction();
-  }, 1000);
+  setTimeout(() => finishAction(), 1000);
 }, "heal");
 
 // ===============================
@@ -790,7 +578,6 @@ function registerBackgroundSync(tag) {
     });
   }
 }
-
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./service-worker.js').then(registration => {
     if (registration.waiting) registration.waiting.postMessage({ type: 'SKIP_WAITING' });
