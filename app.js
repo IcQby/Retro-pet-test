@@ -367,7 +367,7 @@ function startCakeFeedSequence() {
   let cakeH = getCakeHeight(cakeImgs[0], cakeW);
   let cakeX = (canvas.width - cakeW) / 2;
   let cakeY = 20;
-  let cakeDesiredBottom = canvas.height - 50;
+  let cakeDesiredBottom = canvas.height - 25;
   let cakeGroundY = cakeDesiredBottom - cakeH;
 
   cakeFeedActive = true;
