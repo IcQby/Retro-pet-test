@@ -17,6 +17,10 @@ const ballImages = [
 const BALL_DISPLAY_SIZE = 50;
 const BALL_RADIUS = BALL_DISPLAY_SIZE / 2;
 
+// --- Cake Image ---
+const cakeImg = new Image();
+cakeImg.src = 'icon/cake1.png';
+
 // --- Canvas and Rendering ---
 const canvas = document.getElementById('pet-canvas');
 const ctx = canvas.getContext('2d');
@@ -71,6 +75,148 @@ let overlapLastEndDistance = Infinity;
 // --- Shared Ground Logic ---
 function getGroundY() {
   return canvas.height - PET_HEIGHT;
+}
+
+// --- Cake Sequence State ---
+let cake = null; // {x, y, vy, onGround, visible}
+let cakeSequenceActive = false;
+let cakeTimer = null;
+let postCakePauseTimer = null;
+let ellipseAlpha = 1;
+
+// --- Cake helpers ---
+function getCakeStartX() {
+  return (canvas.width - 50) / 2;
+}
+function getCakeStartY() {
+  return 0;
+}
+function getCakeGroundY() {
+  return getGroundY() + PET_HEIGHT - 50; // cake sits on grass, same as ball
+}
+
+// --- Draw black ellipse under cake ---
+function drawCakeEllipse(x, y, alpha = 1) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.beginPath();
+  ctx.ellipse(x + 25, y + 50, 30, 10, 0, 0, 2 * Math.PI); // 60x20 ellipse
+  ctx.fillStyle = 'black';
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+// --- Draw cake if present ---
+function drawCake() {
+  if (!cake || !cake.visible) return;
+  drawCakeEllipse(cake.x, cake.y, ellipseAlpha);
+  ctx.drawImage(cakeImg, cake.x, cake.y, 50, 50);
+}
+
+// --- Update cake falling ---
+function updateCake() {
+  if (!cake || !cake.visible) return;
+  if (!cake.onGround) {
+    cake.vy += ballGravity; // use same gravity as ball
+    cake.y += cake.vy;
+    if (cake.y >= getCakeGroundY()) {
+      cake.y = getCakeGroundY();
+      cake.vy = 0;
+      cake.onGround = true;
+      // Cake landed, start timer for 5s
+      cakeTimer = setTimeout(() => {
+        // Start fade out
+        let fadeStart = Date.now();
+        function fadeStep() {
+          let elapsed = Date.now() - fadeStart;
+          ellipseAlpha = Math.max(0, 1 - (elapsed / 250));
+          if (ellipseAlpha > 0) {
+            setTimeout(fadeStep, 16);
+          } else {
+            cake.visible = false;
+            ellipseAlpha = 1;
+            // Pig pause for 1s, then resume
+            postCakePauseTimer = setTimeout(() => {
+              cakeSequenceActive = false;
+              actionInProgress = false;
+              setButtonsDisabled(false);
+              startJump();
+            }, 1000);
+          }
+        }
+        fadeStep();
+      }, 5000);
+    }
+  }
+}
+
+// --- Helper: Pig should stop right next to cake (not overlap) ---
+function pigShouldStopForCake() {
+  if (!cake || !cake.visible || !cake.onGround) return false;
+  const cakeLeft = cake.x;
+  const cakeRight = cake.x + 50;
+  const pigCenter = petX + PET_WIDTH / 2;
+  if (direction === 1 && petX + PET_WIDTH >= cakeLeft - 2 && petX < cakeLeft - 2) {
+    return true;
+  }
+  if (direction === -1 && petX <= cakeRight + 2 && petX + PET_WIDTH > cakeRight + 2) {
+    return true;
+  }
+  if (petX + PET_WIDTH === cakeLeft || petX === cakeRight) return true;
+  return false;
+}
+
+// --- Helper: Is pig overlapping cake? ---
+function pigOverlapsCake() {
+  if (!cake || !cake.visible) return false;
+  const cakeLeft = cake.x;
+  const cakeRight = cake.x + 50;
+  const pigLeft = petX;
+  const pigRight = petX + PET_WIDTH;
+  return !(pigRight < cakeLeft || pigLeft > cakeRight);
+}
+
+// --- Override updatePigChase for cake logic ---
+function updatePigForCake() {
+  if (!cakeSequenceActive || !cake || !cake.visible) return false;
+  if (!cake.onGround) return;
+
+  // If pig overlaps cake and is in air, gently lower pig to groundY at normal speed
+  if (pigOverlapsCake() && petY < getGroundY()) {
+    vy += gravity;
+    petY += vy;
+    if (petY > getGroundY()) petY = getGroundY();
+    vx = 0;
+    return;
+  }
+
+  // If pig is NOT next to cake, walk/jump toward closest side
+  const cakeLeft = cake.x;
+  const cakeRight = cake.x + 50;
+  const pigRight = petX + PET_WIDTH;
+  const pigLeft = petX;
+
+  // Stop if pig is exactly next to cake (left or right)
+  if (
+    (Math.abs(pigRight - cakeLeft) < 3 && direction === 1) ||
+    (Math.abs(pigLeft - cakeRight) < 3 && direction === -1)
+  ) {
+    vx = 0;
+    currentImg = direction === 1 ? petImgRight : petImgLeft;
+    return;
+  }
+
+  // Move toward nearest edge
+  if (petX + PET_WIDTH / 2 < cake.x + 25) {
+    direction = 1;
+    vx = 2; // slower speed for precise stop
+    currentImg = petImgRight;
+  } else {
+    direction = -1;
+    vx = -2;
+    currentImg = petImgLeft;
+  }
 }
 
 // --- UI Helpers ---
@@ -139,11 +285,27 @@ function effectGuard(fn) {
 }
 
 window.feedPet = effectGuard(function() {
-  lockActionsForDuration(1000); // Lock for 1s
+  if (cakeSequenceActive) return; // Prevent re-entry
+  cakeSequenceActive = true;
+  actionInProgress = true;
+  setButtonsDisabled(true);
+
   pet.hunger = Math.max(0, pet.hunger - 15);
   pet.happiness = Math.min(100, pet.happiness + 5);
   updateStats();
   registerBackgroundSync('sync-feed-pet');
+
+  // Setup cake state
+  if (cakeTimer) clearTimeout(cakeTimer);
+  if (postCakePauseTimer) clearTimeout(postCakePauseTimer);
+  ellipseAlpha = 1;
+  cake = {
+    x: getCakeStartX(),
+    y: getCakeStartY(),
+    vy: 0,
+    onGround: false,
+    visible: true,
+  };
 });
 window.playWithPet = effectGuard(function() {
   lockActionsForDuration(15000); // 10s visible + 5s fade for ball
@@ -459,57 +621,29 @@ function animate() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawBackground();
 
-  // Ball physics and drawing
-  updateBall();
-  drawBall();
-
-  // Overlap detection for this frame
-  inOverlap = checkPigBallOverlap();
-  let pigCenterX = petX + PET_WIDTH / 2;
-  let ballCenterX = ball ? ball.x : null;
-
-  // Overlap pause logic v8
-  if (showBall && ball) {
-    // Start overlap pause when entering overlap
-    if (inOverlap && !wasInOverlap) {
-      overlapPauseActive = true;
-      overlapLastEndDistance = Infinity;
-    }
-    // While overlapping, keep pause active and reset separation
-    if (inOverlap) {
-      overlapLastEndDistance = Infinity;
-    }
-    // When overlap ends, start tracking separation distance
-    if (!inOverlap && wasInOverlap) {
-      if (ball) overlapLastEndDistance = Math.abs(pigCenterX - ballCenterX);
-    }
-    // While not overlapping, update distance and exit pause after 0.5*PET_WIDTH
-    if (overlapPauseActive && !inOverlap && ball) {
-      overlapLastEndDistance = Math.abs(pigCenterX - ballCenterX);
-      if (overlapLastEndDistance >= PET_WIDTH * 0.5) {
-        overlapPauseActive = false; // Resume chase
-      }
-    }
-    // If ball disappears, reset pause
-    if (!showBall) {
-      overlapPauseActive = false;
-      overlapLastEndDistance = Infinity;
-    }
-  } else {
-    // No ball, not chasing
-    overlapPauseActive = false;
-    overlapLastEndDistance = Infinity;
+  // Ball and cake physics/drawing
+  if (!cakeSequenceActive) {
+    updateBall();
+    drawBall();
   }
-  wasInOverlap = inOverlap;
+  updateCake();
+  drawCake();
 
-  // Pig chase logic
-  updatePigChase();
+  // --- Cake logic overrides pig movement, else normal ---
+  if (cakeSequenceActive && cake && cake.visible) {
+    updatePigForCake();
+  } else {
+    updatePigChase();
+  }
 
   // Pig movement (jump arc always continues)
   if (!isSleeping && !sleepSequenceActive && !pendingWake) {
-    vy += gravity;
-    petX += vx;
-    petY += vy;
+    // If cake sequence, pig movement already handled
+    if (!cakeSequenceActive) {
+      vy += gravity;
+      petX += vx;
+      petY += vy;
+    }
   }
 
   // Boundaries
@@ -527,6 +661,48 @@ function animate() {
     }
   }
 
+  // Cake collision (if pig is airborne and overlaps cake, lower to ground)
+  if (cakeSequenceActive && cake && cake.visible && pigOverlapsCake() && petY < getGroundY()) {
+    vy = Math.min(vy + gravity, 8); // clamp descent speed
+    petY += vy;
+    if (petY > getGroundY()) petY = getGroundY();
+    vx = 0;
+  }
+
+  // Overlap detection for this frame (ball)
+  inOverlap = checkPigBallOverlap();
+  let pigCenterX = petX + PET_WIDTH / 2;
+  let ballCenterX = ball ? ball.x : null;
+
+  // Overlap pause logic v8 (ball)
+  if (showBall && ball) {
+    if (inOverlap && !wasInOverlap) {
+      overlapPauseActive = true;
+      overlapLastEndDistance = Infinity;
+    }
+    if (inOverlap) {
+      overlapLastEndDistance = Infinity;
+    }
+    if (!inOverlap && wasInOverlap) {
+      if (ball) overlapLastEndDistance = Math.abs(pigCenterX - ballCenterX);
+    }
+    if (overlapPauseActive && !inOverlap && ball) {
+      overlapLastEndDistance = Math.abs(pigCenterX - ballCenterX);
+      if (overlapLastEndDistance >= PET_WIDTH * 0.5) {
+        overlapPauseActive = false; // Resume chase
+      }
+    }
+    if (!showBall) {
+      overlapPauseActive = false;
+      overlapLastEndDistance = Infinity;
+    }
+  } else {
+    overlapPauseActive = false;
+    overlapLastEndDistance = Infinity;
+  }
+  wasInOverlap = inOverlap;
+
+  // Ball kicking
   if (!isSleeping && !sleepSequenceActive && !pendingWake && showBall && ball) {
     if (pigHitsBallFront(ball)) {
       kickBallFromPig(ball);
@@ -538,23 +714,38 @@ function animate() {
   if (petY >= groundY) {
     petY = groundY;
 
-    if (pendingSleep) {
-      vx = 0;
-      vy = 0;
-      pendingSleep = false;
-      runSleepSequence();
-    } else if (!isSleeping && !sleepSequenceActive && !sleepRequested && !pendingWake) {
-      if (showBall && ball) {
-        // Normal chase: possibly reverse direction if needed
-        if (!overlapPauseActive && shouldReverseToChaseBall()) {
-          direction = -direction;
-          vx = direction * 3;
-          currentImg = (direction === 1) ? petImgRight : petImgLeft;
+    // For cake sequence: stop next to cake
+    if (cakeSequenceActive && cake && cake.visible && cake.onGround) {
+      if (pigShouldStopForCake()) {
+        vx = 0;
+        // Remain still next to cake until it disappears
+      } else if (!pigOverlapsCake()) {
+        // If not next to cake, move toward it
+        if (petX + PET_WIDTH / 2 < cake.x + 25) {
+          direction = 1;
+          vx = 2;
+          currentImg = petImgRight;
+        } else {
+          direction = -1;
+          vx = -2;
+          currentImg = petImgLeft;
         }
         startJump();
-      } else {
-        // No ball: continue jumping in last direction
-        startJump();
+      }
+    } else if (!isSleeping && !sleepSequenceActive && !sleepRequested && !pendingWake) {
+      if (!cakeSequenceActive) {
+        if (showBall && ball) {
+          // Normal chase: possibly reverse direction if needed
+          if (!overlapPauseActive && shouldReverseToChaseBall()) {
+            direction = -direction;
+            vx = direction * 3;
+            currentImg = (direction === 1) ? petImgRight : petImgLeft;
+          }
+          startJump();
+        } else {
+          // No ball: continue jumping in last direction
+          startJump();
+        }
       }
     }
   }
@@ -625,7 +816,7 @@ window.addEventListener('DOMContentLoaded', () => {
   resizeCanvas();
   updateStats();
   Promise.all([
-    loadImages([petImgLeft, petImgRight, petImgSleep, petImgSleepR]),
+    loadImages([petImgLeft, petImgRight, petImgSleep, petImgSleepR, cakeImg]),
     loadBallImages()
   ])
     .then(() => {
