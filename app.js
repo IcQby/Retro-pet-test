@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v6.1";
+const versionid = "v6.3";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -197,7 +197,6 @@ function idleJumping() {
   }
 }
 
-// For "play" and ball, override idle movement with chase logic
 function startIdleJump() {
   const speed = 6, angle = Math.PI * 65 / 180;
   vx = direction * speed * Math.cos(angle);
@@ -212,8 +211,7 @@ function getGroundY() {
 // SECTION 6: PLAY SEQUENCE
 // ===============================
 
-// -- All ball logic, chase, pig/ball interaction, etc --
-let ball = null; // {x, y, vx, vy, radius, img, angle}
+let ball = null;
 const ballGravity = 0.5;
 const ballAirFriction = 0.99;
 const ballBounce = 0.7;
@@ -397,14 +395,12 @@ function updateBallOverlapPause() {
 function actionMovement() {
   switch (currentAction) {
     case "play":
-      // ... (unchanged, see previous code)
-      // Ball chase and kick logic
+      // Ball chase and kick logic (not used for cake feed)
       break;
     case "feed":
       // Logic is handled in cakeFeedActive branch
       break;
     default:
-      // Default: do nothing extra, idleJumping already runs
       break;
   }
 }
@@ -412,7 +408,6 @@ function actionMovement() {
 // ===============================
 // SECTION 8: SLEEP SEQUENCE
 // ===============================
-// (unchanged, see previous code)
 function startSleepSequence() {
   sleepSequenceStep = 1;
   sleepSequenceActive = true;
@@ -465,7 +460,6 @@ function setButtonsDisabled(disabled) {
 }
 
 function effectGuard(fn, actionName) {
-  // Only one action at a time
   return function (...args) {
     if (actionInProgress) return;
     actionInProgress = true;
@@ -493,79 +487,90 @@ function updateStats() {
 }
 
 // --- CAKE FEED SEQUENCE ---
+function startCakeFeedSequence() {
+  cakeFeedActive = true;
+  let pigWasFacing = direction;
+  let pigIdleImg = pigWasFacing === 1 ? petImgRight : petImgLeft;
+  let pigEatImg = pigWasFacing === 1 ? pigRightEatImg : pigLeftEatImg;
+  let cakeW = 75, cakeH = 80;
+  let cakeX = (canvas.width - cakeW) / 2;
+  let cakeY = 0;
+  let cakeImgIdx = 0;
+  let cakeFalling = true;
+  let cakeFadeAlpha = 1;
+  let cakeGroundY = getGroundY();
+  let pigStoppedByCake = false;
+  let sequenceStep = 0;
+  let timers = [];
+  let pigPastCake = false;
+  let pigTurningBack = false;
+
+  cakeFeedState = {
+    pigWasFacing, pigIdleImg, pigEatImg, cakeX, cakeY, cakeW, cakeH, cakeImgIdx, cakeFalling, cakeFadeAlpha, sequenceStep, pigStoppedByCake, timers, cakeGroundY, pigPastCake, pigTurningBack
+  };
+
+  // Pig initial jump
+  vx = direction * 6 * Math.cos(Math.PI * 65 / 180);
+  vy = -6 * Math.sin(Math.PI * 65 / 180);
+}
+
 function updateCakeFeed() {
   if (!cakeFeedActive) return;
   let st = cakeFeedState;
 
-  // Cake falls
   if (st.cakeFalling) {
     st.cakeY += 7;
 
-    // Pig movement logic
-    let pigFront = direction === 1 ? petX + PET_WIDTH : petX;
     let cakeLeft = st.cakeX;
     let cakeRight = st.cakeX + st.cakeW;
-
-    // Check for overlap: pig's rectangle overlaps cake's rectangle
+    let pigFront = direction === 1 ? petX + PET_WIDTH : petX;
+    let pigBack = direction === 1 ? petX : petX + PET_WIDTH;
     let pigOverlapsCake = (
       (petX < cakeRight && petX + PET_WIDTH > cakeLeft) &&
       (petY + PET_HEIGHT > st.cakeY && petY < st.cakeY + st.cakeH)
     );
 
-    // If pig overlaps cake, keep jumping in the same direction until past
-    if (pigOverlapsCake) {
-      // Normal jump/physics
+    // If pig overlaps cake, keep jumping until fully past
+    if (pigOverlapsCake && !st.pigPastCake) {
       vy += gravity;
       petX += vx;
       petY += vy;
 
-      // Boundaries
       if (petX < 0) { petX = 0; vx = Math.abs(vx); direction = 1; }
       if (petX + PET_WIDTH > canvas.width) { petX = canvas.width - PET_WIDTH; vx = -Math.abs(vx); direction = -1; }
 
-      // Ground + jump
       if (petY >= getGroundY()) {
         petY = getGroundY();
         vy = -6 * Math.sin(Math.PI * 65 / 180);
         vx = direction * 6 * Math.cos(Math.PI * 65 / 180);
       }
-      // Wait until pig is past the cake to proceed
+
+      // Check if pig is now fully past cake
+      if ((direction === 1 && pigBack >= cakeRight) || (direction === -1 && pigFront <= cakeLeft)) {
+        st.pigPastCake = true;
+      }
     }
-    // If pig is past cake (front not overlapping), turn around and move toward cake to start eating
-    else if (
-      (direction === 1 && pigFront >= cakeRight) ||
-      (direction === -1 && pigFront <= cakeLeft)
-    ) {
-      // Turn around (only once)
+    // If pig just passed the cake, turn and head to cake edge
+    else if (st.pigPastCake && !st.pigTurningBack) {
       direction = -direction;
       vx = direction * 6 * Math.cos(Math.PI * 65 / 180);
-      // Move pig just to edge of cake
-      if (direction === 1) {
-        petX = cakeLeft - PET_WIDTH;
-      } else {
-        petX = cakeRight;
-      }
-      st.pigStoppedByCake = true; // Now pig is ready to stop at cake for eating
+      st.pigTurningBack = true;
     }
-    // Otherwise, approach the cake as before
-    else if (!st.pigStoppedByCake) {
-      // Normal jump/physics
+    // Approach cake edge after turning
+    else if (st.pigTurningBack && !st.pigStoppedByCake) {
       vy += gravity;
       petX += vx;
       petY += vy;
 
-      // Boundaries
       if (petX < 0) { petX = 0; vx = Math.abs(vx); direction = 1; }
       if (petX + PET_WIDTH > canvas.width) { petX = canvas.width - PET_WIDTH; vx = -Math.abs(vx); direction = -1; }
 
-      // Ground + jump
       if (petY >= getGroundY()) {
         petY = getGroundY();
         vy = -6 * Math.sin(Math.PI * 65 / 180);
         vx = direction * 6 * Math.cos(Math.PI * 65 / 180);
       }
 
-      // Check for bump into cake (from new direction)
       pigFront = direction === 1 ? petX + PET_WIDTH : petX;
       if (direction === 1 && pigFront >= cakeLeft && pigFront <= cakeRight) {
         petX = cakeLeft - PET_WIDTH;
@@ -576,6 +581,43 @@ function updateCakeFeed() {
         petX = cakeRight;
         vx = 0;
         st.pigStoppedByCake = true;
+      }
+    }
+    // If pig not overlapping and not past, just approach cake as normal
+    else if (!st.pigStoppedByCake) {
+      vy += gravity;
+      petX += vx;
+      petY += vy;
+
+      if (petX < 0) { petX = 0; vx = Math.abs(vx); direction = 1; }
+      if (petX + PET_WIDTH > canvas.width) { petX = canvas.width - PET_WIDTH; vx = -Math.abs(vx); direction = -1; }
+
+      if (petY >= getGroundY()) {
+        petY = getGroundY();
+        vy = -6 * Math.sin(Math.PI * 65 / 180);
+        vx = direction * 6 * Math.cos(Math.PI * 65 / 180);
+      }
+
+      pigFront = direction === 1 ? petX + PET_WIDTH : petX;
+      if (direction === 1 && pigFront >= cakeLeft && pigFront <= cakeRight) {
+        petX = cakeLeft - PET_WIDTH;
+        vx = 0;
+        st.pigStoppedByCake = true;
+      }
+      if (direction === -1 && pigFront <= cakeRight && pigFront >= cakeLeft) {
+        petX = cakeRight;
+        vx = 0;
+        st.pigStoppedByCake = true;
+      }
+    } else {
+      // If pig is stopped by cake, but in air: continue y only
+      if (petY < getGroundY()) {
+        vy += gravity;
+        petY += vy;
+        if (petY >= getGroundY()) {
+          petY = getGroundY();
+          vy = 0;
+        }
       }
     }
 
@@ -599,7 +641,6 @@ function updateCakeFeed() {
       }, 500));
     }
   } else {
-    // Existing eating/fade logic here...
     if (st.sequenceStep === 5) {
       let elapsed = Date.now() - st.fadeStart;
       st.cakeFadeAlpha = Math.max(0, 1 - elapsed / 2000);
@@ -616,18 +657,28 @@ function updateCakeFeed() {
   }
 }
 
-// ========== ORIGINAL FEED BUTTON =============
-// window.feedPet = effectGuard(function () {
-//   pet.hunger = Math.max(0, pet.hunger - 15);
-//   pet.happiness = Math.min(100, pet.happiness + 5);
-//   updateStats();
-//   registerBackgroundSync('sync-feed-pet');
-//   setTimeout(() => {
-//     finishAction();
-//   }, 1000);
-// }, "feed");
+function drawCakeFeed() {
+  if (!cakeFeedActive) return;
+  let st = cakeFeedState;
+  ctx.save();
+  ctx.globalAlpha = st.cakeFadeAlpha;
+  let imgIdx = 0;
+  if (st.sequenceStep === 0 || st.sequenceStep === 1) imgIdx = 0;
+  if (st.sequenceStep === 2) imgIdx = 1;
+  if (st.sequenceStep === 3) imgIdx = 2;
+  if (st.sequenceStep === 4 || st.sequenceStep === 5) imgIdx = 3;
+  ctx.drawImage(cakeImgs[imgIdx], st.cakeX, st.cakeY, st.cakeW, st.cakeH);
+  ctx.globalAlpha = 1;
+  let pigImg = st.pigIdleImg;
+  if ((st.sequenceStep === 1 && st.cakeFalling === false) ||
+      (st.sequenceStep === 2 && Date.now() % 1500 < 500) ||
+      (st.sequenceStep === 3 && Date.now() % 1500 < 500)) {
+    pigImg = st.pigEatImg;
+  }
+  ctx.drawImage(pigImg, petX, petY, PET_WIDTH, PET_HEIGHT);
+  ctx.restore();
+}
 
-// ========== REPLACED WITH CAKE FEED BUTTON ============
 window.feedPet = effectGuard(function () {
   pet.hunger = Math.max(0, pet.hunger - 15);
   pet.happiness = Math.min(100, pet.happiness + 5);
@@ -673,7 +724,6 @@ function registerBackgroundSync(tag) {
   }
 }
 
-// Service Worker hot update logic
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./service-worker.js').then(registration => {
     if (registration.waiting) registration.waiting.postMessage({ type: 'SKIP_WAITING' });
