@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v6.9";
+const versionid = "v6.10";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -368,7 +368,7 @@ function startCakeFeedSequence() {
   let cakeX = (canvas.width - cakeW) / 2;
   let cakeY = 20;
   let cakeDesiredBottom = canvas.height - 25;
-  let cakeGroundY = cakeDesiredBottom;
+  let cakeGroundY = cakeDesiredBottom - cakeH;
 
   cakeFeedActive = true;
   cakeFeedState = {
@@ -518,7 +518,7 @@ function updateCakeFeed() {
       cakeFeedActive = false;
       finishAction();
       direction = st.pigStartDirection;
-      currentImg = direction === 1 ? petImgRight : petImgLeft;
+      currentImg = direction === -1 ? petImgRight : petImgLeft;
       startIdleJump();
       st.eatTimers.forEach(t => clearTimeout(t));
       cakeFeedState = null;
