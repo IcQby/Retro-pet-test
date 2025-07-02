@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v6.3";
+const versionid = "v6.4";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -108,7 +108,7 @@ let pendingWake = false;
 let wakeTimeoutId = null;
 
 let actionInProgress = false;
-let currentAction = null; // "play", "sleep", "feed", "clean", "heal", or null
+let currentAction = null;
 
 let wasInOverlap = false;
 let inOverlap = false;
@@ -127,24 +127,18 @@ function masterUpdateDrawRoutine() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawBackground();
 
-  // Play Sequence: Ball Animation & Logic (Section 6)
   updateBall();
   drawBall();
   updateBallOverlapPause();
 
-  // Cake Feed Animation overrides normal idle/actions if active
   if (cakeFeedActive) {
     updateCakeFeed();
     drawCakeFeed();
   } else {
-    // Always run idle jumping & movement first
     idleJumping();
-
-    // If an action is active, run its movement logic
     if (actionInProgress && currentAction) {
       actionMovement();
     }
-
     ctx.drawImage(currentImg, petX, petY, PET_WIDTH, PET_HEIGHT);
   }
 
@@ -156,17 +150,12 @@ function masterUpdateDrawRoutine() {
 // ===============================
 
 function idleJumping() {
-  // Only idle movement: walking, edge bounce, jumping
-  // No ball chase or kick logic
-
-  // Gravity and movement
   if (!isSleeping && !sleepSequenceActive && !pendingWake) {
     vy += gravity;
     petX += vx;
     petY += vy;
   }
 
-  // Boundaries
   if (!isSleeping && !sleepSequenceActive && !pendingWake) {
     if (petX <= 0) {
       petX = 0;
@@ -181,7 +170,6 @@ function idleJumping() {
     }
   }
 
-  // Ground landing and jump logic
   let groundY = getGroundY();
   if (petY >= groundY) {
     petY = groundY;
@@ -249,7 +237,6 @@ function showBallForDuration() {
     angle: 0
   };
 
-  // Fade after 10s over 5s
   showBallTimeout = setTimeout(() => {
     let fadeStart = Date.now();
     function fadeStep() {
@@ -393,16 +380,7 @@ function updateBallOverlapPause() {
 // ===============================
 
 function actionMovement() {
-  switch (currentAction) {
-    case "play":
-      // Ball chase and kick logic (not used for cake feed)
-      break;
-    case "feed":
-      // Logic is handled in cakeFeedActive branch
-      break;
-    default:
-      break;
-  }
+  // All other actions handled separately
 }
 
 // ===============================
@@ -461,7 +439,7 @@ function setButtonsDisabled(disabled) {
 
 function effectGuard(fn, actionName) {
   return function (...args) {
-    if (actionInProgress) return;
+    if (actionInProgress || cakeFeedActive) return;
     actionInProgress = true;
     currentAction = actionName;
     setButtonsDisabled(true);
@@ -487,12 +465,19 @@ function updateStats() {
 }
 
 // --- CAKE FEED SEQUENCE ---
+// Helper to get cake image native ratio for a given index
+function getCakeHeight(img, width) {
+  if (!img || !img.complete || !img.naturalWidth) return 75; // fallback
+  return img.naturalHeight * (width / img.naturalWidth);
+}
+
 function startCakeFeedSequence() {
   cakeFeedActive = true;
   let pigWasFacing = direction;
   let pigIdleImg = pigWasFacing === 1 ? petImgRight : petImgLeft;
   let pigEatImg = pigWasFacing === 1 ? pigRightEatImg : pigLeftEatImg;
-  let cakeW = 75, cakeH = 80;
+  let cakeW = 100;
+  let cakeH = getCakeHeight(cakeImgs[0], cakeW);
   let cakeX = (canvas.width - cakeW) / 2;
   let cakeY = 0;
   let cakeImgIdx = 0;
@@ -508,16 +493,18 @@ function startCakeFeedSequence() {
   cakeFeedState = {
     pigWasFacing, pigIdleImg, pigEatImg, cakeX, cakeY, cakeW, cakeH, cakeImgIdx, cakeFalling, cakeFadeAlpha, sequenceStep, pigStoppedByCake, timers, cakeGroundY, pigPastCake, pigTurningBack
   };
-
-  // Pig initial jump
-  vx = direction * 6 * Math.cos(Math.PI * 65 / 180);
-  vy = -6 * Math.sin(Math.PI * 65 / 180);
 }
 
 function updateCakeFeed() {
   if (!cakeFeedActive) return;
   let st = cakeFeedState;
 
+  // On the first run, set cakeH for all frames by current width
+  if (!st.cakeH || isNaN(st.cakeH) || st.cakeH < 1) {
+    st.cakeH = getCakeHeight(cakeImgs[st.cakeImgIdx], st.cakeW);
+  }
+
+  // Cake falls
   if (st.cakeFalling) {
     st.cakeY += 7;
 
@@ -545,7 +532,6 @@ function updateCakeFeed() {
         vx = direction * 6 * Math.cos(Math.PI * 65 / 180);
       }
 
-      // Check if pig is now fully past cake
       if ((direction === 1 && pigBack >= cakeRight) || (direction === -1 && pigFront <= cakeLeft)) {
         st.pigPastCake = true;
       }
@@ -610,7 +596,6 @@ function updateCakeFeed() {
         st.pigStoppedByCake = true;
       }
     } else {
-      // If pig is stopped by cake, but in air: continue y only
       if (petY < getGroundY()) {
         vy += gravity;
         petY += vy;
@@ -621,7 +606,6 @@ function updateCakeFeed() {
       }
     }
 
-    // Cake hits ground, eating sequence as before
     if (st.cakeY >= st.cakeGroundY) {
       st.cakeY = st.cakeGroundY;
       st.cakeFalling = false;
@@ -667,7 +651,8 @@ function drawCakeFeed() {
   if (st.sequenceStep === 2) imgIdx = 1;
   if (st.sequenceStep === 3) imgIdx = 2;
   if (st.sequenceStep === 4 || st.sequenceStep === 5) imgIdx = 3;
-  ctx.drawImage(cakeImgs[imgIdx], st.cakeX, st.cakeY, st.cakeW, st.cakeH);
+  let cakeH = getCakeHeight(cakeImgs[imgIdx], st.cakeW);
+  ctx.drawImage(cakeImgs[imgIdx], st.cakeX, st.cakeY, st.cakeW, cakeH);
   ctx.globalAlpha = 1;
   let pigImg = st.pigIdleImg;
   if ((st.sequenceStep === 1 && st.cakeFalling === false) ||
@@ -686,6 +671,49 @@ window.feedPet = effectGuard(function () {
   registerBackgroundSync('sync-feed-pet');
   startCakeFeedSequence();
 }, "feed");
+
+window.playWithPet = effectGuard(function () {
+  pet.happiness = Math.min(100, pet.happiness + 10);
+  pet.hunger = Math.min(100, pet.hunger + 5);
+  updateStats();
+  showBallForDuration();
+  setTimeout(() => {
+    finishAction();
+  }, 15000);
+}, "play");
+
+window.cleanPet = effectGuard(function () {
+  pet.cleanliness = 100;
+  pet.happiness = Math.min(100, pet.happiness + 5);
+  updateStats();
+  setTimeout(() => {
+    finishAction();
+  }, 2000);
+}, "clean");
+
+window.sleepPet = effectGuard(function () {
+  pet.health = Math.min(100, pet.health + 10);
+  pet.hunger = Math.min(100, pet.hunger + 10);
+  updateStats();
+  if (!isSleeping && !sleepSequenceActive && !sleepRequested) {
+    sleepRequested = true;
+    resumeDirection = direction;
+    resumeImg = (direction === 1) ? petImgRight : petImgLeft;
+    pendingSleep = true;
+  }
+  setTimeout(() => {
+    finishAction();
+  }, 9000);
+}, "sleep");
+
+window.healPet = effectGuard(function () {
+  pet.health = 100;
+  pet.happiness = Math.min(100, pet.happiness + 5);
+  updateStats();
+  setTimeout(() => {
+    finishAction();
+  }, 1000);
+}, "heal");
 
 // ===============================
 // SECTION 11: UI & RESPONSIVE HELPERS
