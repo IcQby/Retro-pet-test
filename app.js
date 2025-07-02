@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v6.8";
+const versionid = "v6.9";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -368,7 +368,7 @@ function startCakeFeedSequence() {
   let cakeX = (canvas.width - cakeW) / 2;
   let cakeY = 20;
   let cakeDesiredBottom = canvas.height - 25;
-  let cakeGroundY = cakeDesiredBottom - cakeH;
+  let cakeGroundY = cakeDesiredBottom;
 
   cakeFeedActive = true;
   cakeFeedState = {
