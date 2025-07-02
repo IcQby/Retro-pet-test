@@ -1,5 +1,5 @@
 // --- Version Info ---
-const versionid = "v1"; // Or set to your actual version
+const versionid = "v1.1"; // Or set to your actual version
 
 // --- Pet Images ---
 const petImgLeft = new Image();
@@ -563,25 +563,6 @@ function animate() {
   }
 
   ctx.drawImage(currentImg, petX, petY, PET_WIDTH, PET_HEIGHT);
-
-  // --- Version text (bottom right, outside canvas) ---
-  if (!document.getElementById('version-number')) {
-    const stats = document.getElementById('stats');
-    const statsStyle = window.getComputedStyle(stats);
-    const versionDiv = document.createElement('div');
-    versionDiv.id = 'version-number';
-    versionDiv.textContent = versionid;
-    versionDiv.style.position = 'fixed';
-    versionDiv.style.right = '40px';
-    versionDiv.style.bottom = '20px';
-    versionDiv.style.fontSize = statsStyle.fontSize;
-    versionDiv.style.color = statsStyle.color;
-    versionDiv.style.fontFamily = statsStyle.fontFamily;
-    versionDiv.style.zIndex = '20';
-    versionDiv.style.pointerEvents = 'none';
-    versionDiv.style.userSelect = 'none';
-    document.body.appendChild(versionDiv);
-  }
 
   requestAnimationFrame(animate);
 }
