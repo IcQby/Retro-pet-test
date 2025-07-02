@@ -15,6 +15,9 @@ const ballBounce = 0.7;
 const canvas = document.getElementById('pet-canvas');
 const ctx = canvas.getContext('2d');
 
+// --- Version ID (for display in index.html) ---
+window.versionid = "v5";
+
 // --- Pet & Game State ---
 let pet = { happiness: 50, hunger: 50, cleanliness: 50, health: 50 };
 let petX, petY, vx = 0, vy = 0, gravity = 0.4, direction = -1;
@@ -561,12 +564,13 @@ function animate() {
     }
   }
   ctx.drawImage(currentImg, petX, petY, PET_WIDTH, PET_HEIGHT);
+  // --- Version text (bottom right, outside canvas) ---
   if (!document.getElementById('version-number')) {
     const stats = document.getElementById('stats');
     const statsStyle = window.getComputedStyle(stats);
     const versionDiv = document.createElement('div');
     versionDiv.id = 'version-number';
-    versionDiv.textContent = 'v8';
+    versionDiv.textContent = window.versionid || 'v5';
     versionDiv.style.position = 'fixed';
     versionDiv.style.right = '40px';
     versionDiv.style.bottom = '20px';
