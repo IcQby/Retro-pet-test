@@ -21,9 +21,9 @@ petImgSleepR.src = 'icon/pig-sleepR.png';
 
 // --- Ball Images ---
 const ballImages = [
-  'icon/cake1.png',
-  'icon/cake2.png',
-  'icon/cake3.png'
+  'icon/ball1.png',
+  'icon/ball2.png',
+  'icon/ball3.png'
 ];
 const BALL_DISPLAY_SIZE = 50;
 const BALL_RADIUS = BALL_DISPLAY_SIZE / 2;
