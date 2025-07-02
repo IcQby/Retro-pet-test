@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v5";
+const versionid = "v5.1";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -91,6 +91,7 @@ let pendingWake = false;
 let wakeTimeoutId = null;
 
 let actionInProgress = false;
+let currentAction = null; // "play", "sleep", "feed", "clean", "heal", or null
 
 let wasInOverlap = false;
 let inOverlap = false;
@@ -110,9 +111,12 @@ function masterUpdateDrawRoutine() {
   drawBall();
   updateBallOverlapPause();
 
-  // Idle Jumping (Section 5: merged idle jump + idle animation)
-  if (!actionInProgress) {
-    idleJumping();
+  // Always run idle jumping & movement first
+  idleJumping();
+
+  // If an action is active, run its movement logic
+  if (actionInProgress && currentAction) {
+    actionMovement();
   }
 
   ctx.drawImage(currentImg, petX, petY, PET_WIDTH, PET_HEIGHT);
@@ -121,31 +125,12 @@ function masterUpdateDrawRoutine() {
 }
 
 // ===============================
-// SECTION 5: IDLE JUMPING
+// SECTION 5: IDLE JUMPING (includes idle movement)
 // ===============================
 
 function idleJumping() {
-  // Ball chase logic (pig chases ball if present and no overlap pause)
-  if (!isSleeping && !sleepSequenceActive && !pendingWake && showBall && ball && !overlapPauseActive) {
-    const pigCenterX = petX + PET_WIDTH / 2;
-    const ballX = ball.x;
-    const chaseSpeed = 3;
-    const deadzone = BALL_RADIUS + 10;
-    if (Math.abs(ballX - pigCenterX) > deadzone) {
-      if (ballX > pigCenterX) {
-        direction = 1;
-        vx = chaseSpeed;
-        currentImg = petImgRight;
-      } else {
-        direction = -1;
-        vx = -chaseSpeed;
-        currentImg = petImgLeft;
-      }
-    } else {
-      vx = 0;
-      currentImg = direction === 1 ? petImgRight : petImgLeft;
-    }
-  }
+  // Only idle movement: walking, edge bounce, jumping
+  // No ball chase or kick logic
 
   // Gravity and movement
   if (!isSleeping && !sleepSequenceActive && !pendingWake) {
@@ -169,14 +154,7 @@ function idleJumping() {
     }
   }
 
-  // Ball kick logic
-  if (!isSleeping && !sleepSequenceActive && !pendingWake && showBall && ball) {
-    if (pigHitsBallFront(ball)) {
-      kickBallFromPig(ball);
-    }
-  }
-
-  // Ground landing and jump/reversal/chase logic
+  // Ground landing and jump logic
   let groundY = getGroundY();
   if (petY >= groundY) {
     petY = groundY;
@@ -186,39 +164,21 @@ function idleJumping() {
       vy = 0;
       pendingSleep = false;
       startSleepSequence();
-    } else if (!isSleeping && !sleepSequenceActive && !sleepRequested && !pendingWake) {
-      if (showBall && ball) {
-        if (!overlapPauseActive && shouldReverseToChaseBall()) {
-          direction = -direction;
-          vx = direction * 3;
-          currentImg = (direction === 1) ? petImgRight : petImgLeft;
-        }
-        startIdleJump();
-      } else {
-        startIdleJump();
-      }
+    } else if (!isSleeping && !sleepSequenceActive && !sleepRequested && !pendingWake && !actionInProgress) {
+      startIdleJump();
     }
   }
 }
 
-function getGroundY() {
-  return canvas.height - PET_HEIGHT;
-}
-
+// For "play" and ball, override idle movement with chase logic
 function startIdleJump() {
   const speed = 6, angle = Math.PI * 65 / 180;
   vx = direction * speed * Math.cos(angle);
   vy = -speed * Math.sin(angle);
 }
 
-function shouldReverseToChaseBall() {
-  if (!showBall || !ball) return false;
-  const pigCenterX = petX + PET_WIDTH / 2;
-  if ((direction === 1 && pigCenterX > ball.x) ||
-    (direction === -1 && pigCenterX < ball.x)) {
-    return true;
-  }
-  return false;
+function getGroundY() {
+  return canvas.height - PET_HEIGHT;
 }
 
 // ===============================
@@ -404,7 +364,85 @@ function updateBallOverlapPause() {
 }
 
 // ===============================
-// SECTION 7: SLEEP SEQUENCE
+// SECTION 7: ACTION MOVEMENT HANDLER
+// ===============================
+
+function actionMovement() {
+  switch (currentAction) {
+    case "play":
+      // Ball chase logic (pig chases ball if present and no overlap pause)
+      if (!isSleeping && !sleepSequenceActive && !pendingWake && showBall && ball && !overlapPauseActive) {
+        const pigCenterX = petX + PET_WIDTH / 2;
+        const ballX = ball.x;
+        const chaseSpeed = 3;
+        const deadzone = BALL_RADIUS + 10;
+        if (Math.abs(ballX - pigCenterX) > deadzone) {
+          if (ballX > pigCenterX) {
+            direction = 1;
+            vx = chaseSpeed;
+            currentImg = petImgRight;
+          } else {
+            direction = -1;
+            vx = -chaseSpeed;
+            currentImg = petImgLeft;
+          }
+        } else {
+          vx = 0;
+          currentImg = direction === 1 ? petImgRight : petImgLeft;
+        }
+      }
+      // Ball kick logic
+      if (!isSleeping && !sleepSequenceActive && !pendingWake && showBall && ball) {
+        if (pigHitsBallFront(ball)) {
+          kickBallFromPig(ball);
+        }
+      }
+      // Ground landing and ball chase jump logic
+      let groundY = getGroundY();
+      if (petY >= groundY) {
+        petY = groundY;
+        if (!isSleeping && !sleepSequenceActive && !sleepRequested && !pendingWake) {
+          if (showBall && ball) {
+            if (!overlapPauseActive && shouldReverseToChaseBall()) {
+              direction = -direction;
+              vx = direction * 3;
+              currentImg = (direction === 1) ? petImgRight : petImgLeft;
+            }
+            startIdleJump();
+          }
+        }
+      }
+      break;
+    case "sleep":
+      // Sleep sequence handled separately via pendingSleep/startSleepSequence
+      break;
+    case "feed":
+      // (Extend for feed animation logic if needed)
+      break;
+    case "clean":
+      // (Extend for clean animation logic if needed)
+      break;
+    case "heal":
+      // (Extend for heal animation logic if needed)
+      break;
+    default:
+      // Default: do nothing extra, idleJumping already runs
+      break;
+  }
+}
+
+function shouldReverseToChaseBall() {
+  if (!showBall || !ball) return false;
+  const pigCenterX = petX + PET_WIDTH / 2;
+  if ((direction === 1 && pigCenterX > ball.x) ||
+    (direction === -1 && pigCenterX < ball.x)) {
+    return true;
+  }
+  return false;
+}
+
+// ===============================
+// SECTION 8: SLEEP SEQUENCE
 // ===============================
 
 function startSleepSequence() {
@@ -449,7 +487,7 @@ function startSleepSequence() {
 }
 
 // ===============================
-// SECTION 8: DISABLE BUTTONS DURING ACTIONS
+// SECTION 9: DISABLE BUTTONS DURING ACTIONS
 // ===============================
 
 function setButtonsDisabled(disabled) {
@@ -458,11 +496,12 @@ function setButtonsDisabled(disabled) {
   });
 }
 
-function effectGuard(fn) {
+function effectGuard(fn, actionName) {
   // Only one action at a time
   return function (...args) {
     if (actionInProgress) return;
     actionInProgress = true;
+    currentAction = actionName;
     setButtonsDisabled(true);
     fn.apply(this, args);
   };
@@ -470,11 +509,12 @@ function effectGuard(fn) {
 
 function finishAction() {
   actionInProgress = false;
+  currentAction = null;
   setButtonsDisabled(false);
 }
 
 // ===============================
-// SECTION 9: PET ACTIONS (Button triggers)
+// SECTION 10: PET ACTIONS (Button triggers)
 // ===============================
 
 function updateStats() {
@@ -492,7 +532,7 @@ window.feedPet = effectGuard(function () {
   setTimeout(() => {
     finishAction();
   }, 1000);
-});
+}, "feed");
 
 window.playWithPet = effectGuard(function () {
   pet.happiness = Math.min(100, pet.happiness + 10);
@@ -502,7 +542,7 @@ window.playWithPet = effectGuard(function () {
   setTimeout(() => {
     finishAction();
   }, 15000);
-});
+}, "play");
 
 window.cleanPet = effectGuard(function () {
   pet.cleanliness = 100;
@@ -511,7 +551,7 @@ window.cleanPet = effectGuard(function () {
   setTimeout(() => {
     finishAction();
   }, 2000);
-});
+}, "clean");
 
 window.sleepPet = effectGuard(function () {
   pet.health = Math.min(100, pet.health + 10);
@@ -526,7 +566,7 @@ window.sleepPet = effectGuard(function () {
   setTimeout(() => {
     finishAction();
   }, 9000);
-});
+}, "sleep");
 
 window.healPet = effectGuard(function () {
   pet.health = 100;
@@ -535,10 +575,10 @@ window.healPet = effectGuard(function () {
   setTimeout(() => {
     finishAction();
   }, 1000);
-});
+}, "heal");
 
 // ===============================
-// SECTION 10: UI & RESPONSIVE HELPERS
+// SECTION 11: UI & RESPONSIVE HELPERS
 // ===============================
 
 function resizeCanvas() {
@@ -552,7 +592,7 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 
 // ===============================
-// SECTION 11: RENDERING
+// SECTION 12: RENDERING
 // ===============================
 
 function drawBackground() {
@@ -563,7 +603,7 @@ function drawBackground() {
 }
 
 // ===============================
-// SECTION 12: SERVICE WORKER & BACKGROUND SYNC
+// SECTION 13: SERVICE WORKER & BACKGROUND SYNC
 // ===============================
 
 function registerBackgroundSync(tag) {
@@ -601,7 +641,7 @@ if ('serviceWorker' in navigator) {
 }
 
 // ===============================
-// SECTION 13: STARTUP
+// SECTION 14: STARTUP
 // ===============================
 
 window.addEventListener('DOMContentLoaded', () => {
