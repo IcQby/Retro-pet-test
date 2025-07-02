@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v6.10";
+const versionid = "v6.11";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -517,8 +517,8 @@ function updateCakeFeed() {
     if (elapsed >= 2000) {
       cakeFeedActive = false;
       finishAction();
-      direction = st.pigStartDirection;
-      currentImg = direction === -1 ? petImgRight : petImgLeft;
+      direction = -st.pigStartDirection;
+      currentImg = direction === 1 ? petImgRight : petImgLeft;
       startIdleJump();
       st.eatTimers.forEach(t => clearTimeout(t));
       cakeFeedState = null;
