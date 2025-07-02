@@ -1,3 +1,12 @@
+/* added no select so text cannot be selected */
+
+.noselect {
+  user-select: none; /* Standard syntax */
+  -webkit-user-select: none; /* Chrome, Safari */
+  -moz-user-select: none;    /* Firefox */
+  -ms-user-select: none;     /* IE10+/Edge */
+}
+
 body {
   background-color: #000;
   color: #0f0;
