@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v6.14";
+const versionid = "v6.15";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -427,7 +427,7 @@ function updateCakeFeed() {
   }
 
  // 3. + 4. pig jumps towards the cake and only stops when hitting it.
- else if (st.phase === "pigJump") {
+else if (st.phase === "pigJump") {
   if (!st.pigJumping) {
     // Compute jump direction to cake
     let pigCenter = petX + PET_WIDTH / 2;
@@ -441,6 +441,7 @@ function updateCakeFeed() {
     st.pigJumping = true;
   }
 
+  // Update motion
   vy += gravity;
   petX += vx;
   petY += vy;
@@ -448,23 +449,25 @@ function updateCakeFeed() {
   // Clamp to canvas bounds
   petX = Math.min(Math.max(petX, 0), canvas.width - PET_WIDTH);
 
-  // Land on ground
+  // 🧠 NEW: Check for front collision with cake — even in midair
+  let pigFront = direction === 1 ? petX + PET_WIDTH : petX;
+  let hitCake = (direction === 1 && pigFront >= st.cakeX) ||
+                (direction === -1 && pigFront <= st.cakeX + st.cakeW);
+
+  if (hitCake) {
+    vx = 0; // Stop horizontal motion immediately
+    st.phase = "PigStopAtCake"; // Let gravity handle the fall
+    return;
+  }
+
+  // 🧠 If pig lands on ground, just prepare for another jump
   if (petY >= getGroundY()) {
     petY = getGroundY();
     vy = 0;
     st.pigJumping = false;
-
-    // Check if pig hits cake
-    let pigFront = direction === 1 ? petX + PET_WIDTH : petX;
-    let hitCake = (direction === 1 && pigFront >= st.cakeX) ||
-                  (direction === -1 && pigFront <= st.cakeX + st.cakeW);
-
-    if (hitCake) {
-      vx = 0;
-      st.phase = "PigStopAtCake";
-    }
   }
 }
+
 
 
   // 5. Pause for 1s before eating
