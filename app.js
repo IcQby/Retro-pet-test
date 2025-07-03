@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v6.15";
+const versionid = "v6.16";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -441,35 +441,53 @@ else if (st.phase === "pigJump") {
     st.pigJumping = true;
   }
 
-  // Update motion
+  // Apply motion
   vy += gravity;
   petX += vx;
   petY += vy;
 
-  // Clamp to canvas bounds
+  // Clamp
   petX = Math.min(Math.max(petX, 0), canvas.width - PET_WIDTH);
 
-  // 🧠 NEW: Check for front collision with cake — even in midair
+  // Check midair cake collision
   let pigFront = direction === 1 ? petX + PET_WIDTH : petX;
   let hitCake = (direction === 1 && pigFront >= st.cakeX) ||
                 (direction === -1 && pigFront <= st.cakeX + st.cakeW);
 
   if (hitCake) {
-    vx = 0; // Stop horizontal motion immediately
-    st.phase = "PigStopAtCake"; // Let gravity handle the fall
+    vx = 0;
+    st.phase = "PigStopAtCake";
     return;
   }
 
-  // 🧠 If pig lands on ground, just prepare for another jump
+  // LANDING
   if (petY >= getGroundY()) {
     petY = getGroundY();
     vy = 0;
     st.pigJumping = false;
+
+    // --- 🔍 Now analyze how far from the cake we are ---
+    pigFront = direction === 1 ? petX + PET_WIDTH : petX;
+    let cakeSide = direction === 1 ? st.cakeX : st.cakeX + st.cakeW;
+    let distToCake = Math.abs(pigFront - cakeSide);
+
+    if (distToCake <= PET_WIDTH / 2) {
+      // 🤏 Small gap → slide toward cake
+      vx = (direction === 1 ? 1 : -1) * 2.5;
+      vy = 0;
+      st.phase = "PigStopAtCake"; // Let it slide horizontally until it hits
+    } else {
+      // 🐸 Too far → make a final jump that's just big enough
+      const horizontalDistance = distToCake;
+      const jumpSpeed = 6; // adjust as needed for vertical arc
+      const jumpTime = horizontalDistance / (jumpSpeed * Math.cos(Math.PI / 4));
+
+      vx = direction * (horizontalDistance / jumpTime);
+      vy = -jumpSpeed * Math.sin(Math.PI / 4);
+      st.pigJumping = true;
+    }
   }
 }
-
-
-
   // 5. Pause for 1s before eating
   else if (st.phase === "preEatPause") {
     if (performance.now() - st.eatStartTime >= 1000) {
