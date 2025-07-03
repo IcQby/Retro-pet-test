@@ -1,9 +1,9 @@
-// ===============================
+2// ===============================
 // Retro Pet test - Modular Layout
 // ===============================
 
 // --- Version Info ---
-const versionid = "v6.18";
+const versionid = "v6.19";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -467,7 +467,7 @@ else if (st.phase === "pigJump") {
 
     if (st.pigJumpsRemaining === 0) {
       vx = 0;
-      st.phase = "PigStopAtCake"; // or preEatPause if already at cake
+      st.phase = "PigEatPause"; // or preEatPause if already at cake
     }
   }
 }
