@@ -475,6 +475,7 @@ else if (st.phase === "pigJump") {
     if (st.pigJumpsRemaining === 0) {
       vx = 0;
       st.phase = "preEatPause"; // start preEatPause because pig is at the cake now
+      st.eatStartTime = performance.now(); //setting eatstarttime to now (is a timestamp that will be used to add a second before it starts eating)
     }
   }
 }
