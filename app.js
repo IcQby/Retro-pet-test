@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v6.13";
+const versionid = "v6.14";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -425,69 +425,47 @@ function updateCakeFeed() {
       st.pigReadyToEat = false;
     }
   }
-  // 3. Pig jumps normally twice toward the cake
-  else if (st.phase === "pigJump") {
-    if (!st.pigJumping && st.pigJumpsRemaining > 0) {
-      // Compute jump direction to cake
-      let pigCenter = petX + PET_WIDTH / 2;
-      let cakeCenter = st.cakeX + st.cakeW / 2;
-      direction = (pigCenter < cakeCenter) ? 1 : -1;
-      currentImg = direction === 1 ? petImgRight : petImgLeft;
-      const speed = 6, angle = Math.PI * 65 / 180;
-      vx = direction * speed * Math.cos(angle);
-      vy = -speed * Math.sin(angle);
-      st.pigJumping = true;
-    }
-    vy += gravity;
-    petX += vx;
-    petY += vy;
-    if (petX < 0) petX = 0;
-    if (petX + PET_WIDTH > canvas.width) petX = canvas.width - PET_WIDTH;
-    // Stop at ground, ready for another jump or to eat
-    if (petY >= getGroundY()) {
-      petY = getGroundY();
-      vy = 0;
-      st.pigJumping = false;
-      st.pigJumpsRemaining--;
-      // If touching cake after a jump, stop and get ready to eat
-      let pigFront = direction === 1 ? petX + PET_WIDTH : petX;
-      let cakeSide = direction === 1 ? st.cakeX : st.cakeX + st.cakeW;
-      let hitCake = false;
-      if (direction === 1 && pigFront >= st.cakeX) hitCake = true;
-      if (direction === -1 && pigFront <= st.cakeX + st.cakeW) hitCake = true;
-      if (hitCake) {
-        vx = 0;
-        st.phase = "PigStopAtCake";
-        return;
-      }
-      if (st.pigJumpsRemaining === 0) {
-        // If not at cake, just move horizontally toward cake and fall
-        vx = direction * 2.5;
-        vy = 0;
-        st.phase = "PigStopAtCake";
-      }
-    }
-  }
-  // 4. Pig jumps to cake, stops when it hits it
-  else if (st.phase === "PigStopAtCake") {
-  // Stop horizontal movement after hitting cake
-  vx = 0;
 
-  // Apply gravity to make pig fall vertically if not on ground
-  if (petY < getGroundY()) {
-    vy += gravity;
-    petY += vy;
-    if (petY >= getGroundY()) {
-      petY = getGroundY();
-      vy = 0;
-      // Once on ground, transition to preEatPause
-      st.phase = "preEatPause";
-      st.eatStartTime = performance.now();
+ // 3. + 4. pig jumps towards the cake and only stops when hitting it.
+ else if (st.phase === "pigJump") {
+  if (!st.pigJumping) {
+    // Compute jump direction to cake
+    let pigCenter = petX + PET_WIDTH / 2;
+    let cakeCenter = st.cakeX + st.cakeW / 2;
+    direction = (pigCenter < cakeCenter) ? 1 : -1;
+    currentImg = direction === 1 ? petImgRight : petImgLeft;
+
+    const speed = 6, angle = Math.PI * 65 / 180;
+    vx = direction * speed * Math.cos(angle);
+    vy = -speed * Math.sin(angle);
+    st.pigJumping = true;
+  }
+
+  vy += gravity;
+  petX += vx;
+  petY += vy;
+
+  // Clamp to canvas bounds
+  petX = Math.min(Math.max(petX, 0), canvas.width - PET_WIDTH);
+
+  // Land on ground
+  if (petY >= getGroundY()) {
+    petY = getGroundY();
+    vy = 0;
+    st.pigJumping = false;
+
+    // Check if pig hits cake
+    let pigFront = direction === 1 ? petX + PET_WIDTH : petX;
+    let hitCake = (direction === 1 && pigFront >= st.cakeX) ||
+                  (direction === -1 && pigFront <= st.cakeX + st.cakeW);
+
+    if (hitCake) {
+      vx = 0;
+      st.phase = "PigStopAtCake";
     }
   }
-  // No horizontal movement after hitting cake, but still keep pigX within bounds
-  petX = Math.min(Math.max(petX, 0), canvas.width - PET_WIDTH);
 }
+
 
   // 5. Pause for 1s before eating
   else if (st.phase === "preEatPause") {
