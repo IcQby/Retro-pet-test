@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v6.19";
+const versionid = "v6.20";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -467,7 +467,7 @@ else if (st.phase === "pigJump") {
 
     if (st.pigJumpsRemaining === 0) {
       vx = 0;
-      st.phase = "PigEatPause"; // or preEatPause if already at cake
+      st.phase = "preEatPause"; // start preEatPause because pig is at the cake now
     }
   }
 }
