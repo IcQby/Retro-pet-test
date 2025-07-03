@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v6.16";
+const versionid = "v6.17";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -426,18 +426,33 @@ function updateCakeFeed() {
     }
   }
 
- // 3. + 4. pig jumps towards the cake and only stops when hitting it.
+ // 3. Before starting pigJump phase calculate distance to cake.
+let pigFront = direction === 1 ? petX + PET_WIDTH : petX;
+let cakeSide = direction === 1 ? st.cakeX : st.cakeX + st.cakeW;
+let dx = Math.abs(cakeSide - pigFront);
+st.jumpDistancePerJump = dx / 2;
+st.pigJumpsRemaining = 2;
+
+//4. make 2 jumps towards cake
 else if (st.phase === "pigJump") {
-  if (!st.pigJumping) {
-    // Compute jump direction to cake
-    let pigCenter = petX + PET_WIDTH / 2;
-    let cakeCenter = st.cakeX + st.cakeW / 2;
-    direction = (pigCenter < cakeCenter) ? 1 : -1;
+  if (!st.pigJumping && st.pigJumpsRemaining > 0) {
+    let angle = Math.PI * 65 / 180; // same fixed angle
+    let distance = st.jumpDistancePerJump;
+
+    // Use basic projectile motion to compute needed speed for desired distance
+    // horizontal speed = distance / time
+    // time = 2 * vy / gravity (symmetric parabolic arc)
+    let g = gravity;
+    let vyFixed = -6; // or keep using the angle-based method
+    let time = -2 * vyFixed / g;
+    let vxNeeded = distance / time;
+
+    direction = petX + PET_WIDTH / 2 < st.cakeX + st.cakeW / 2 ? 1 : -1;
     currentImg = direction === 1 ? petImgRight : petImgLeft;
 
-    const speed = 6, angle = Math.PI * 65 / 180;
-    vx = direction * speed * Math.cos(angle);
-    vy = -speed * Math.sin(angle);
+    vx = direction * vxNeeded;
+    vy = vyFixed;
+
     st.pigJumping = true;
   }
 
@@ -446,48 +461,21 @@ else if (st.phase === "pigJump") {
   petX += vx;
   petY += vy;
 
-  // Clamp
-  petX = Math.min(Math.max(petX, 0), canvas.width - PET_WIDTH);
-
-  // Check midair cake collision
-  let pigFront = direction === 1 ? petX + PET_WIDTH : petX;
-  let hitCake = (direction === 1 && pigFront >= st.cakeX) ||
-                (direction === -1 && pigFront <= st.cakeX + st.cakeW);
-
-  if (hitCake) {
-    vx = 0;
-    st.phase = "PigStopAtCake";
-    return;
-  }
-
-  // LANDING
+  // Clamp to ground
   if (petY >= getGroundY()) {
     petY = getGroundY();
     vy = 0;
     st.pigJumping = false;
+    st.pigJumpsRemaining--;
 
-    // --- 🔍 Now analyze how far from the cake we are ---
-    pigFront = direction === 1 ? petX + PET_WIDTH : petX;
-    let cakeSide = direction === 1 ? st.cakeX : st.cakeX + st.cakeW;
-    let distToCake = Math.abs(pigFront - cakeSide);
-
-    if (distToCake <= PET_WIDTH / 2) {
-      // 🤏 Small gap → slide toward cake
-      vx = (direction === 1 ? 1 : -1) * 2.5;
-      vy = 0;
-      st.phase = "PigStopAtCake"; // Let it slide horizontally until it hits
-    } else {
-      // 🐸 Too far → make a final jump that's just big enough
-      const horizontalDistance = distToCake;
-      const jumpSpeed = 6; // adjust as needed for vertical arc
-      const jumpTime = horizontalDistance / (jumpSpeed * Math.cos(Math.PI / 4));
-
-      vx = direction * (horizontalDistance / jumpTime);
-      vy = -jumpSpeed * Math.sin(Math.PI / 4);
-      st.pigJumping = true;
+    if (st.pigJumpsRemaining === 0) {
+      vx = 0;
+      st.phase = "PigStopAtCake"; // or preEatPause if already at cake
     }
   }
 }
+
+
   // 5. Pause for 1s before eating
   else if (st.phase === "preEatPause") {
     if (performance.now() - st.eatStartTime >= 1000) {
