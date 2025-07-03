@@ -428,7 +428,8 @@ function updateCakeFeed() {
       st.pigJumpsRemaining = 2;
       
       st.phase = "pigJump";
-      
+   }
+  }      
 //4. make 2 jumps towards cake
 else if (st.phase === "pigJump") {
   if (!st.pigJumping && st.pigJumpsRemaining > 0) {
