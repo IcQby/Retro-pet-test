@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v7.2";
+const versionid = "v7.3";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -585,17 +585,24 @@ function updateCleaning() {
   let wiggle = Math.sin(performance.now() / 100) * 1.5;
   petX += wiggle;
 
-  // Update bubbles: float up and fade out
-  if (st.bubbles) {
-    for (let b of st.bubbles) {
-      b.y -= 0.5;
-      b.alpha -= 0.01;
-    }
-    st.bubbles = st.bubbles.filter(b => b.alpha > 0);
+  // Initialize bubbles array if missing
+  if (!st.bubbles) st.bubbles = [];
+
+  // Update bubbles: float up and fade out slowly
+  for (let b of st.bubbles) {
+    b.y -= 0.5;
+    b.alpha -= 0.007;  // slower fade for longer visible bubbles
+  }
+  // Remove fully faded bubbles
+  st.bubbles = st.bubbles.filter(b => b.alpha > 0);
+
+  // Add bubbles to keep around 15 bubbles for continuous effect
+  while (st.bubbles.length < 15) {
+    st.bubbles.push(createBubble());
   }
 
   // End cleaning after 2 seconds
-  if (performance.now() - st.cleanStartTime > 2000) {
+  if (performance.now() - st.cleanStartTime > 5000) {
     st.phase = "doneCleaning";  // Or whatever phase you want next
     finishAction();
   }
@@ -616,14 +623,31 @@ function drawCleaning() {
 function drawBubble(ctx, x, y, r, alpha) {
   ctx.save();
   ctx.globalAlpha = alpha;
-  ctx.strokeStyle = "rgba(173, 216, 230, 0.8)";  // Light blue bubble color
-  ctx.lineWidth = 1;
+
+  // Fill bubble with light blue and some transparency
+  ctx.fillStyle = "rgba(173, 216, 230, 0.3)";
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Darker outline
+  ctx.strokeStyle = "rgba(0, 0, 80, 0.8)";
+  ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.stroke();
+
   ctx.restore();
 }
 
+function createBubble() {
+  return {
+    x: petX + PET_WIDTH / 2 + (Math.random() - 0.5) * 30,
+    y: petY + PET_HEIGHT - 10 + Math.random() * 10,
+    radius: 4 + Math.random() * 3,
+    alpha: 0.6 + Math.random() * 0.4
+  };
+}
 // -- BUTTONS --
 window.feedPet = effectGuard(function () {
   pet.hunger = Math.max(0, pet.hunger - 15);
