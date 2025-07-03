@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v7.3";
+const versionid = "v7.4";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -625,13 +625,13 @@ function drawBubble(ctx, x, y, r, alpha) {
   ctx.globalAlpha = alpha;
 
   // Fill bubble with light blue and some transparency
-  ctx.fillStyle = "rgba(173, 216, 230, 0.3)";
+  ctx.fillStyle = "rgba(173, 216, 250, 0.4)";
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
 
   // Darker outline
-  ctx.strokeStyle = "rgba(0, 0, 80, 0.8)";
+  ctx.strokeStyle = "rgba(0, 0, 230, 0.8)";
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
