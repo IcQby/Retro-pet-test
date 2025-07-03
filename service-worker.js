@@ -1,4 +1,4 @@
-const CACHE_NAME = 'retro-pet-cache-v2'; // Update this to invalidate old caches
+const CACHE_NAME = 'retro-pet-cache-test'; // Update this to invalidate old caches
 const urlsToCache = [
   './',
   './index.html',
@@ -6,10 +6,20 @@ const urlsToCache = [
   './style.css',
   './manifest.json',
   './icon/icon-512.png',
+  './icon/ball1.png',
+  './icon/ball2.png',
+  './icon/ball3.png',
+  './icon/cake1.png',
+  './icon/cake2.png',
+  './icon/cake3.png',
+  './icon/cake4.png',
   './icon/pig-left.png',
   './icon/pig-right.png',
   './icon/pig-sleep.png',
-  './icon/pig-sleepR.png'
+  './icon/pig-sleepR.png',
+  './icon/pig-right-eat.png',
+  './icon/pig-left-eat.png',
+  
 ];
 
 // Install: cache all required assets and activate immediately
