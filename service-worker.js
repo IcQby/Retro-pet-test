@@ -42,12 +42,16 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Fetch: network-first for fresh content, fallback to cache if offline
 self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') {
+    // Just do network fetch, no caching
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then(networkResponse => {
-        // Only cache valid responses (status 200)
         if (networkResponse && networkResponse.status === 200) {
           caches.open(CACHE_NAME).then(cache => {
             cache.put(event.request, networkResponse.clone());
