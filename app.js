@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v6.20";
+const versionid = "v7.1";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -104,15 +104,22 @@ let cakeFeedState = null;
 function masterUpdateDrawRoutine() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawBackground();
-  updateBall(); drawBall(); updateBallOverlapPause();
+  updateBall(); 
+  drawBall(); 
+  updateBallOverlapPause();
+
   if (cakeFeedActive) {
     updateCakeFeed();
     drawCakeFeed();
+  } else if (st.phase === "cleaning") {
+    updateCleaning();
+    drawCleaning();
   } else {
     idleJumping();
     if (actionInProgress && currentAction) actionMovement();
     ctx.drawImage(currentImg, petX, petY, PET_WIDTH, PET_HEIGHT);
   }
+
   requestAnimationFrame(masterUpdateDrawRoutine);
 }
 
@@ -548,6 +555,54 @@ function drawCakeFeed() {
   ctx.restore();
 }
 
+//===============
+//CLEANING SEQUENCE
+//===============
+
+function updateCleaning() {
+  // Small horizontal wiggle to simulate sliding
+  let wiggle = Math.sin(performance.now() / 100) * 1.5;
+  petX += wiggle;
+
+  // Update bubbles: float up and fade out
+  if (st.bubbles) {
+    for (let b of st.bubbles) {
+      b.y -= 0.5;
+      b.alpha -= 0.01;
+    }
+    st.bubbles = st.bubbles.filter(b => b.alpha > 0);
+  }
+
+  // End cleaning after 2 seconds
+  if (performance.now() - st.cleanStartTime > 2000) {
+    st.phase = "doneCleaning";  // Or whatever phase you want next
+    finishAction();
+  }
+}
+
+function drawCleaning() {
+  // Draw pig
+  ctx.drawImage(currentImg, petX, petY, PET_WIDTH, PET_HEIGHT);
+  
+  // Draw bubbles on top
+  if (st.bubbles) {
+    for (let b of st.bubbles) {
+      drawBubble(ctx, b.x, b.y, b.radius, b.alpha);
+    }
+  }
+}
+
+function drawBubble(ctx, x, y, r, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = "rgba(173, 216, 230, 0.8)";  // Light blue bubble color
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
 // -- BUTTONS --
 window.feedPet = effectGuard(function () {
   pet.hunger = Math.max(0, pet.hunger - 15);
@@ -569,8 +624,25 @@ window.cleanPet = effectGuard(function () {
   pet.cleanliness = 100;
   pet.happiness = Math.min(100, pet.happiness + 5);
   updateStats();
-  setTimeout(() => finishAction(), 2000);
+
+  // Start cleaning animation
+  st.phase = "cleaning";
+  st.cleanStartTime = performance.now();
+  st.bubbles = createBubbles();
 }, "clean");
+
+function createBubbles() {
+  const bubbles = [];
+  for (let i = 0; i < 10; i++) {
+    bubbles.push({
+      x: petX + Math.random() * PET_WIDTH,
+      y: petY + Math.random() * (PET_HEIGHT / 2),
+      radius: 4 + Math.random() * 6,
+      alpha: 1
+    });
+  }
+  return bubbles;
+}
 
 window.sleepPet = effectGuard(function () {
   pet.health = Math.min(100, pet.health + 10);
@@ -591,6 +663,11 @@ window.healPet = effectGuard(function () {
   updateStats();
   setTimeout(() => finishAction(), 1000);
 }, "heal");
+
+
+
+
+
 
 // ===============================
 // SECTION 11: UI & RESPONSIVE HELPERS
