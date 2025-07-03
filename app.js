@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v6.17";
+const versionid = "v6.18";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -418,21 +418,17 @@ function updateCakeFeed() {
     } else {
       st.cakeY = st.cakeGroundY;
       st.shadowVisible = false;
-      st.phase = "pigJump";
-      // Prepare pig for jump toward cake
+      
+     // 3. Before starting pigJump phase calculate distance to cake.  
+      direction = petX + PET_WIDTH / 2 < st.cakeX + st.cakeW / 2 ? 1 : -1;
+       let pigFront = direction === 1 ? petX + PET_WIDTH : petX;
+      let cakeSide = direction === 1 ? st.cakeX : st.cakeX + st.cakeW;
+      let totalDistance = Math.abs(cakeSide - pigFront);
+       st.jumpDistancePerJump = totalDistance / 2;
       st.pigJumpsRemaining = 2;
-      st.pigJumping = false;
-      st.pigReadyToEat = false;
-    }
-  }
-
- // 3. Before starting pigJump phase calculate distance to cake.
-let pigFront = direction === 1 ? petX + PET_WIDTH : petX;
-let cakeSide = direction === 1 ? st.cakeX : st.cakeX + st.cakeW;
-let dx = Math.abs(cakeSide - pigFront);
-st.jumpDistancePerJump = dx / 2;
-st.pigJumpsRemaining = 2;
-
+      
+      st.phase = "pigJump";
+      
 //4. make 2 jumps towards cake
 else if (st.phase === "pigJump") {
   if (!st.pigJumping && st.pigJumpsRemaining > 0) {
