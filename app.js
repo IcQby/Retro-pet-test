@@ -98,6 +98,26 @@ let overlapLastEndDistance = Infinity;
 let cakeFeedActive = false;
 let cakeFeedState = null;
 
+// --- Cleaning Sequence State ---
+const st = {
+  phase: "idle",        // track current animation phase ("idle", "cleaning", "cakeFall", etc.)
+  pigJumpsRemaining: 0,
+  pigJumping: false,
+  cakeY: 0,
+  cakeGroundY: 0,
+  shadowVisible: false,
+  jumpDistancePerJump: 0,
+  eatStartTime: 0,
+  eatStep: 0,
+  cakeImgIdx: 0,
+  cakeFadeAlpha: 1,
+  fadeStart: 0,
+  eatTimers: [],
+  // Add cleaning-specific flags if needed:
+  cleaningTimer: null,
+  bubbles: [], // if you want to track bubble positions
+};
+
 // ===============================
 // SECTION 4: MASTER UPDATE/DRAW ROUTINE
 // ===============================
