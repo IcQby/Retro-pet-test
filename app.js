@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v6.11";
+const versionid = "v6.12";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -217,6 +217,8 @@ function checkPigBallOverlap() {
 function pigHitsBallFront(ball) {
   const pigLeft = petX, pigRight = petX + PET_WIDTH;
   const bx = ball.x, r = ball.radius;
+  const by = ball.y, pigTop = petY, pigBottom = petY + PET_HEIGHT;
+  if (by + r < pigTop || by - r > pigBottom) return false; // no vertical overlap
   const closestX = Math.max(pigLeft, Math.min(bx, pigRight));
   const dx = bx - closestX;
   if (dx * dx < r * r) {
