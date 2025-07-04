@@ -132,7 +132,7 @@
 .zzz {
   position: absolute;
   font-size: 2rem;
-  color: #0f0;
+  color: #000;
   opacity: 0;
   animation: floatZ1 3s infinite ease-in-out;
 }
