@@ -440,6 +440,8 @@ function startSleepSequence() {
       currentImg = imgA;
       setTimeout(() => {
         currentImg = imgB;
+        backgroundMode = 'transitioning';
+          transitionStartTime = Date.now();
         setTimeout(() => {
           // Pig falls asleep
           currentImg = sleepImg;
@@ -451,8 +453,7 @@ function startSleepSequence() {
 
           // Start background transition back to normal after 7.5 seconds
           setTimeout(() => {
-            backgroundMode = 'transitioning';
-            transitionStartTime = Date.now();
+
           }, sleepDuration - transitionDuration); // 7500ms
 
           // Wake up after 10 seconds
