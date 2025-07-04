@@ -21,22 +21,27 @@
       <button onclick="healPet()"> Medicine 🩹</button>
     </div>
 <div id="stats-container">
- <div id="stats-labels">
+  <div class="stat-row">
     <div class="stat-label"><span class="icon">🍗</span> Hunger</div>
+    <div class="stat-bar" id="hunger-bar"></div>
+  </div>
+  <div class="stat-row">
     <div class="stat-label"><span class="icon">💖</span> Happiness</div>
+    <div class="stat-bar" id="happiness-bar"></div>
+  </div>
+  <div class="stat-row">
     <div class="stat-label"><span class="icon">🧼</span> Cleanliness</div>
+    <div class="stat-bar" id="cleanliness-bar"></div>
+  </div>
+  <div class="stat-row">
     <div class="stat-label"><span class="icon">😴</span> Sleepiness</div>
+    <div class="stat-bar" id="sleepiness-bar"></div>
+  </div>
+  <div class="stat-row">
     <div class="stat-label"><span class="icon">❤️</span> Health</div>
+    <div class="stat-bar" id="health-bar"></div>
   </div>
-    
-  <div id="stats-bars">
-    <div id="hunger-bar" class="stat-bar"></div>
-    <div id="happiness-bar" class="stat-bar"></div>
-    <div id="cleanliness-bar" class="stat-bar"></div>
-    <div id="sleepiness-bar" class="stat-bar"></div>
-    <div id="health-bar" class="stat-bar"></div>
-  </div>
-</div>  
+</div>
 <div id="version-footer" style="
     position: fixed;
     right: 20px;
