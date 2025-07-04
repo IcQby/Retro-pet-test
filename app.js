@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v8.6";
+const versionid = "v8.7";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -142,6 +142,94 @@ function masterUpdateDrawRoutine() {
 
   requestAnimationFrame(masterUpdateDrawRoutine);
 }
+
+// ===============================
+// SECTION old 12: RENDERING background
+// ===============================
+let backgroundMode = 'normal'; // 'normal' | 'sleep' | 'transitioning'
+let transitionStartTime = null;
+const sleepDuration = 10000; // 10 seconds
+const transitionDuration = 2500; // 2.5 seconds
+
+
+// HELPER function for transitioning background colour
+function lerpColor(color1, color2, t) {
+  const c1 = hexToRgb(color1);
+  const c2 = hexToRgb(color2);
+
+  const r = Math.round(c1.r + (c2.r - c1.r) * t);
+  const g = Math.round(c1.g + (c2.g - c1.g) * t);
+  const b = Math.round(c1.b + (c2.b - c1.b) * t);
+
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+function hexToRgb(hex) {
+  const normalized = hex.replace('#', '');
+  const bigint = parseInt(normalized, 16);
+  return {
+    r: (bigint >> 16) & 255,
+    g: (bigint >> 8) & 255,
+    b: bigint & 255
+  };
+}
+
+// Drawing the background itself
+function drawBackground() {
+  let topColor, bottomColor;
+
+  const now = Date.now();
+
+  if (backgroundMode === 'normal') {
+    topColor = '#ADD8E6';     // sky blue
+    bottomColor = '#90EE90';  // grass green
+
+  } else if (backgroundMode === 'sleep') {
+    topColor = '#001a33';     // dark blue sky
+    bottomColor = '#003300';  // dark green grass
+
+  } else if (backgroundMode === 'transitioning') {
+    const elapsed = now - transitionStartTime;
+    const t = Math.min(elapsed / transitionDuration, 1); // 0 to 1
+
+    topColor = lerpColor('#001a33', '#ADD8E6', t);
+    bottomColor = lerpColor('#003300', '#90EE90', t);
+
+    if (t >= 1) {
+      backgroundMode = 'normal';
+    }
+  }
+
+  const groundY = getGroundY();
+  ctx.fillStyle = bottomColor;
+  ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+  ctx.fillStyle = topColor;
+  ctx.fillRect(0, 0, canvas.width, groundY);
+}
+
+
+function lerpColor(color1, color2, t) {
+  const c1 = hexToRgb(color1);
+  const c2 = hexToRgb(color2);
+
+  const r = Math.round(c1.r + (c2.r - c1.r) * t);
+  const g = Math.round(c1.g + (c2.g - c1.g) * t);
+  const b = Math.round(c1.b + (c2.b - c1.b) * t);
+
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+function hexToRgb(hex) {
+  const normalized = hex.replace('#', '');
+  const bigint = parseInt(normalized, 16);
+  return {
+    r: (bigint >> 16) & 255,
+    g: (bigint >> 8) & 255,
+    b: bigint & 255
+  };
+}
+
+
 
 // ===============================
 // SECTION 5: IDLE JUMPING (includes idle movement)
@@ -341,57 +429,56 @@ function startSleepSequence() {
   let sleepImg = (resumeImg === petImgRight) ? petImgSleepR : petImgSleep;
 
   currentImg = imgA;
+  draw(); // Force redraw
 
-  // Immediately darken background (start at t=0)
-  drawBackground(0);
-
+  // Step 1: Animate head bobbing
   setTimeout(() => {
-    currentImg = imgB;
+    currentImg = imgB; draw();
     setTimeout(() => {
-      currentImg = imgA;
+      currentImg = imgA; draw();
       setTimeout(() => {
-        currentImg = imgB;
+        currentImg = imgB; draw();
         setTimeout(() => {
+          // Step 2: Transition to sleep
           currentImg = sleepImg;
           isSleeping = true;
           sleepSequenceActive = false;
+          draw();
 
           showZzzAbovePig(petX, petY);
 
+          // Step 3: Background transition setup
           const sleepDuration = 10000;
           const transitionDuration = 3000;
-          const transitionStart = sleepDuration - transitionDuration; // 7000ms
-
+          const transitionStart = sleepDuration - transitionDuration;
           const sleepStartTime = Date.now();
 
           function animateBackground() {
-            let elapsed = Date.now() - sleepStartTime;
-            if (elapsed >= transitionStart && elapsed <= sleepDuration) {
+            const elapsed = Date.now() - sleepStartTime;
+            if (elapsed < transitionStart) {
+              drawBackground(0); // Keep dark
+            } else if (elapsed < sleepDuration) {
               let t = (elapsed - transitionStart) / transitionDuration;
-              if (t > 1) t = 1;
-              drawBackground(t);
-            } else if (elapsed < transitionStart) {
-              // Keep dark background before transition starts
-              drawBackground(0);
+              drawBackground(Math.min(t, 1)); // Smooth transition
             }
             if (elapsed < sleepDuration) {
               requestAnimationFrame(animateBackground);
             }
           }
+
           animateBackground();
 
-          // Wake pig after sleepDuration
+          // Step 4: Wake pig after full sleep
           setTimeout(() => {
-            // Ensure background fully normal before pig wakes up
-            drawBackground(1);
-
-            currentImg = imgA; // Wake-up pig image
+            drawBackground(1); // Force final normal background
+            currentImg = imgA;
             isSleeping = false;
             pendingWake = true;
             vx = 0;
             vy = 0;
 
             hideZzz();
+            draw();
 
             wakeTimeoutId = setTimeout(() => {
               pendingWake = false;
@@ -399,6 +486,7 @@ function startSleepSequence() {
               sleepSequenceActive = false;
               direction = resumeDirection;
               currentImg = (direction === 1) ? petImgRight : petImgLeft;
+              draw();
               startIdleJump();
             }, 2000);
           }, sleepDuration);
@@ -843,91 +931,7 @@ function resizeCanvas() {
 }
 window.addEventListener('resize', resizeCanvas);
 
-// ===============================
-// SECTION 12: RENDERING background
-// ===============================
-let backgroundMode = 'normal'; // 'normal' | 'sleep' | 'transitioning'
-let transitionStartTime = null;
-const sleepDuration = 10000; // 10 seconds
-const transitionDuration = 2500; // 2.5 seconds
 
-
-// HELPER function for transitioning background colour
-function lerpColor(color1, color2, t) {
-  const c1 = hexToRgb(color1);
-  const c2 = hexToRgb(color2);
-
-  const r = Math.round(c1.r + (c2.r - c1.r) * t);
-  const g = Math.round(c1.g + (c2.g - c1.g) * t);
-  const b = Math.round(c1.b + (c2.b - c1.b) * t);
-
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
-function hexToRgb(hex) {
-  const normalized = hex.replace('#', '');
-  const bigint = parseInt(normalized, 16);
-  return {
-    r: (bigint >> 16) & 255,
-    g: (bigint >> 8) & 255,
-    b: bigint & 255
-  };
-}
-
-// Drawing the background itself
-function drawBackground() {
-  let topColor, bottomColor;
-
-  const now = Date.now();
-
-  if (backgroundMode === 'normal') {
-    topColor = '#ADD8E6';     // sky blue
-    bottomColor = '#90EE90';  // grass green
-
-  } else if (backgroundMode === 'sleep') {
-    topColor = '#001a33';     // dark blue sky
-    bottomColor = '#003300';  // dark green grass
-
-  } else if (backgroundMode === 'transitioning') {
-    const elapsed = now - transitionStartTime;
-    const t = Math.min(elapsed / transitionDuration, 1); // 0 to 1
-
-    topColor = lerpColor('#001a33', '#ADD8E6', t);
-    bottomColor = lerpColor('#003300', '#90EE90', t);
-
-    if (t >= 1) {
-      backgroundMode = 'normal';
-    }
-  }
-
-  const groundY = getGroundY();
-  ctx.fillStyle = bottomColor;
-  ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
-  ctx.fillStyle = topColor;
-  ctx.fillRect(0, 0, canvas.width, groundY);
-}
-
-
-function lerpColor(color1, color2, t) {
-  const c1 = hexToRgb(color1);
-  const c2 = hexToRgb(color2);
-
-  const r = Math.round(c1.r + (c2.r - c1.r) * t);
-  const g = Math.round(c1.g + (c2.g - c1.g) * t);
-  const b = Math.round(c1.b + (c2.b - c1.b) * t);
-
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
-function hexToRgb(hex) {
-  const normalized = hex.replace('#', '');
-  const bigint = parseInt(normalized, 16);
-  return {
-    r: (bigint >> 16) & 255,
-    g: (bigint >> 8) & 255,
-    b: bigint & 255
-  };
-}
 
 // ===============================
 // SECTION 13: SERVICE WORKER & BACKGROUND SYNC
