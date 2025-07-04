@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v8.2";
+const versionid = "v8.3";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -346,8 +346,19 @@ function startSleepSequence() {
           sleepSequenceActive = false;
           
           // Show Zs above pig's head
-          showZzzAbovePig(petX, petY); // pigX and pigY should be the pig's canvas coordinates
-          
+         function showZzzAbovePig(x, y) {
+          const canvas = document.getElementById("pet-canvas");
+          const zzzContainer = document.getElementById("zzz-container");
+          const rect = canvas.getBoundingClientRect();
+
+          // Offset based on direction
+          const offsetX = (currentImg === petImgSleepR) ? (x + PET_WIDTH) : x;
+          const offsetY = y - 40; // Adjust height above pig
+
+          zzzContainer.style.left = `${rect.left + offsetX}px`;
+          zzzContainer.style.top = `${rect.top + offsetY}px`;
+          zzzContainer.classList.remove("hidden");
+          }
           setTimeout(() => {
             currentImg = imgA; isSleeping = false; pendingWake = true; vx = 0; vy = 0;
             wakeTimeoutId = setTimeout(() => {
@@ -357,7 +368,7 @@ function startSleepSequence() {
               hideZzz();
               startIdleJump();
             }, 2000);
-          }, 5000);
+          }, 10000);
         }, 500);
       }, 500);
     }, 500);
@@ -661,8 +672,8 @@ function drawBubble(ctx, x, y, r, alpha) {
 
 function createBubble() {
   return {
-    x: petX + PET_WIDTH / 2 + (Math.random() - 0.5) * 30,
-    y: petY + PET_HEIGHT - 10 + Math.random() * 10,
+    x: petX + PET_WIDTH + (Math.random() - 0.5) * 30,
+    y: petY + PET_HEIGHT / 3 + Math.random() * 10,
     radius: 4 + Math.random() * 3,
     alpha: 0.6 + Math.random() * 0.4
   };
@@ -771,14 +782,14 @@ window.sleepPet = effectGuard(function () {
     resumeImg = (direction === 1) ? petImgRight : petImgLeft;
     pendingSleep = true;
   }
-  setTimeout(() => finishAction(), 9000);
+  setTimeout(() => finishAction(), 14500);
 }, "sleep");
 
 window.healPet = effectGuard(function () {
     pet.health = 100;
     pet.happiness = clamp(pet.happiness + 5, 0, 100);
   updateAllBars();
-  setTimeout(() => finishAction(), 1000);
+  setTimeout(() => finishAction(), 100);
 }, "heal");
 
 
