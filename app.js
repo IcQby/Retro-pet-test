@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v8.5";
+const versionid = "v8.6";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -335,12 +335,15 @@ function startSleepSequence() {
   sleepSequenceStep = 1;
   sleepSequenceActive = true;
   sleepRequested = false;
-  
+
   let imgA = resumeImg;
   let imgB = (resumeImg === petImgRight) ? petImgLeft : petImgRight;
   let sleepImg = (resumeImg === petImgRight) ? petImgSleepR : petImgSleep;
-  
+
   currentImg = imgA;
+
+  // Immediately darken background (start at t=0)
+  drawBackground(0);
 
   setTimeout(() => {
     currentImg = imgB;
@@ -352,17 +355,42 @@ function startSleepSequence() {
           currentImg = sleepImg;
           isSleeping = true;
           sleepSequenceActive = false;
-          
-          // Show Zs above pig's head
+
           showZzzAbovePig(petX, petY);
 
+          const sleepDuration = 10000;
+          const transitionDuration = 3000;
+          const transitionStart = sleepDuration - transitionDuration; // 7000ms
+
+          const sleepStartTime = Date.now();
+
+          // Animate background from dark (0) to normal (1) during last 3 seconds
+          function animateBackground() {
+            let elapsed = Date.now() - sleepStartTime;
+            if (elapsed >= transitionStart) {
+              // How far into transition (0 to 1)
+              let t = (elapsed - transitionStart) / transitionDuration;
+              if (t > 1) t = 1;
+              drawBackground(t);
+            }
+            if (elapsed < sleepDuration) {
+              requestAnimationFrame(animateBackground);
+            }
+          }
+          animateBackground();
+
+          // Wake pig after 10 seconds
           setTimeout(() => {
+            // Switch background to normal fully 0.5s before changing pig image (handled by animation above)
+            // Just to be safe, force draw normal here:
+            drawBackground(1);
+
             currentImg = imgA;
             isSleeping = false;
             pendingWake = true;
             vx = 0;
             vy = 0;
-            
+
             hideZzz();
 
             wakeTimeoutId = setTimeout(() => {
@@ -373,7 +401,7 @@ function startSleepSequence() {
               currentImg = (direction === 1) ? petImgRight : petImgLeft;
               startIdleJump();
             }, 2000);
-          }, 10000); // sleep for 10 seconds
+          }, sleepDuration);
         }, 500);
       }, 500);
     }, 500);
@@ -815,31 +843,90 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 
 // ===============================
-// SECTION 12: RENDERING
+// SECTION 12: RENDERING background
 // ===============================
-function drawBackground() {
-  const skyHeight = canvas.height * 0.75;
-  const grassHeight = canvas.height - skyHeight;
+let backgroundMode = 'normal'; // 'normal' | 'sleep' | 'transitioning'
+let transitionStartTime = null;
+const sleepDuration = 10000; // 10 seconds
+const transitionDuration = 2500; // 2.5 seconds
 
-  if (isSleeping) {
-    // Dark sky
-    ctx.fillStyle = '#001022';
-    ctx.fillRect(0, 0, canvas.width, skyHeight);
 
-    // Darker grass
-    ctx.fillStyle = '#003300';
-    ctx.fillRect(0, skyHeight, canvas.width, grassHeight);
-  } else {
-    // Daytime sky
-    ctx.fillStyle = '#ADD8E6';
-    ctx.fillRect(0, 0, canvas.width, skyHeight);
+// HELPER function for transitioning background colour
+function lerpColor(color1, color2, t) {
+  const c1 = hexToRgb(color1);
+  const c2 = hexToRgb(color2);
 
-    // Daytime grass
-    ctx.fillStyle = '#90EE90';
-    ctx.fillRect(0, skyHeight, canvas.width, grassHeight);
-  }
+  const r = Math.round(c1.r + (c2.r - c1.r) * t);
+  const g = Math.round(c1.g + (c2.g - c1.g) * t);
+  const b = Math.round(c1.b + (c2.b - c1.b) * t);
+
+  return `rgb(${r}, ${g}, ${b})`;
 }
 
+function hexToRgb(hex) {
+  const normalized = hex.replace('#', '');
+  const bigint = parseInt(normalized, 16);
+  return {
+    r: (bigint >> 16) & 255,
+    g: (bigint >> 8) & 255,
+    b: bigint & 255
+  };
+}
+
+// Drawing the background itself
+function drawBackground() {
+  let topColor, bottomColor;
+
+  const now = Date.now();
+
+  if (backgroundMode === 'normal') {
+    topColor = '#ADD8E6';     // sky blue
+    bottomColor = '#90EE90';  // grass green
+
+  } else if (backgroundMode === 'sleep') {
+    topColor = '#001a33';     // dark blue sky
+    bottomColor = '#003300';  // dark green grass
+
+  } else if (backgroundMode === 'transitioning') {
+    const elapsed = now - transitionStartTime;
+    const t = Math.min(elapsed / transitionDuration, 1); // 0 to 1
+
+    topColor = lerpColor('#001a33', '#ADD8E6', t);
+    bottomColor = lerpColor('#003300', '#90EE90', t);
+
+    if (t >= 1) {
+      backgroundMode = 'normal';
+    }
+  }
+
+  const groundY = getGroundY();
+  ctx.fillStyle = bottomColor;
+  ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+  ctx.fillStyle = topColor;
+  ctx.fillRect(0, 0, canvas.width, groundY);
+}
+
+
+function lerpColor(color1, color2, t) {
+  const c1 = hexToRgb(color1);
+  const c2 = hexToRgb(color2);
+
+  const r = Math.round(c1.r + (c2.r - c1.r) * t);
+  const g = Math.round(c1.g + (c2.g - c1.g) * t);
+  const b = Math.round(c1.b + (c2.b - c1.b) * t);
+
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+function hexToRgb(hex) {
+  const normalized = hex.replace('#', '');
+  const bigint = parseInt(normalized, 16);
+  return {
+    r: (bigint >> 16) & 255,
+    g: (bigint >> 8) & 255,
+    b: bigint & 255
+  };
+}
 
 // ===============================
 // SECTION 13: SERVICE WORKER & BACKGROUND SYNC
