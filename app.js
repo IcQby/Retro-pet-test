@@ -764,32 +764,6 @@ window.healPet = effectGuard(function () {
 }, "heal");
 
 
-  // Attach event listeners to buttons
-  document.getElementById('btn-feed').addEventListener('click', () => {
-    feedPet();
-    updateAllBars();
-  });
-  document.getElementById('btn-play').addEventListener('click', () => {
-    playWithPet();
-    updateAllBars();
-  });
-  document.getElementById('btn-clean').addEventListener('click', () => {
-    cleanPet();
-    updateAllBars();
-  });
-  document.getElementById('btn-sleep').addEventListener('click', () => {
-    sleepPet();
-    updateAllBars();
-  });
-  document.getElementById('btn-heal').addEventListener('click', () => {
-    healPet();
-    updateAllBars();
-  });
-
-  // Initialize bars on page load
-  updateAllBars();
-
-
 
 // ===============================
 // SECTION 11: UI & RESPONSIVE HELPERS
