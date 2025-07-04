@@ -50,7 +50,7 @@
   text-align: center;
 }
 
-#stats-container {
+#stats {
   display: flex;
   justify-content: center;
   align-items: flex-start;
