@@ -350,11 +350,11 @@ function startSleepSequence() {
           
           setTimeout(() => {
             currentImg = imgA; isSleeping = false; pendingWake = true; vx = 0; vy = 0;
-            hideZzz();
             wakeTimeoutId = setTimeout(() => {
               pendingWake = false; sleepSequenceStep = 0; sleepSequenceActive = false;
               direction = resumeDirection;
               currentImg = (direction === 1) ? petImgRight : petImgLeft;
+              hideZzz();
               startIdleJump();
             }, 2000);
           }, 5000);
