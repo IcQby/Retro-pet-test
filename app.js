@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v7.4";
+const versionid = "v7.5";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -650,8 +650,9 @@ function createBubble() {
 }
 // -- BUTTONS --
 window.feedPet = effectGuard(function () {
-  pet.hunger = Math.max(0, pet.hunger - 15);
+  pet.hunger = Math.max(0, pet.hunger - 20);
   pet.happiness = Math.min(100, pet.happiness + 5);
+  pet.cleanliness = Math.max(100, pet.cleanliness - 5);
   updateStats();
   registerBackgroundSync('sync-feed-pet');
   startCakeFeedSequence();
@@ -659,14 +660,15 @@ window.feedPet = effectGuard(function () {
 
 window.playWithPet = effectGuard(function () {
   pet.happiness = Math.min(100, pet.happiness + 10);
-  pet.hunger = Math.min(100, pet.hunger + 5);
+  pet.cleanliness = Math.max(100, pet.cleanliness - 20);
+  pet.hunger = Math.min(100, pet.hunger + 20);
   updateStats();
   showBallForDuration();
   setTimeout(() => finishAction(), 15000);
 }, "play");
 
 window.cleanPet = effectGuard(function () {
-  pet.cleanliness = 100;
+  pet.cleanliness = Math.min(100, pet.cleanliness + 20);
   pet.happiness = Math.min(100, pet.happiness + 5);
   updateStats();
 
