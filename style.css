@@ -45,6 +45,13 @@
     box-sizing: border-box;
   }
 
+#stats-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-top: 1rem;
+}
 #controls {
   margin: 1rem 0;
   text-align: center;
