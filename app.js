@@ -378,13 +378,6 @@ function finishAction() {
 // ===============================
 // SECTION 10: PET ACTIONS (Button triggers)
 // ===============================
-function updateStats() {
-  document.getElementById('happiness').textContent = pet.happiness;
-  document.getElementById('hunger').textContent = pet.hunger;
-  document.getElementById('sleepiness').textContent = pet.sleepiness;
-  document.getElementById('cleanliness').textContent = pet.cleanliness;
-  document.getElementById('health').textContent = pet.health;
-}
 
 // --- CAKE FEED SEQUENCE ---
 function getCakeHeight(img, width) {
@@ -702,7 +695,7 @@ window.feedPet = effectGuard(function () {
   pet.hunger = clamp(pet.hunger + 20, 0, 100);
   pet.happiness = clamp(pet.happiness + 10, 0, 100);
   pet.cleanliness = clamp(pet.cleanliness - 5, 0, 100);
-  updateStats();
+  updateAllBars();
   registerBackgroundSync('sync-feed-pet');
   startCakeFeedSequence();
 }, "feed");
@@ -713,7 +706,7 @@ window.playWithPet = effectGuard(function () {
     pet.hunger = clamp(pet.hunger - 10, 0, 100);
     pet.sleepiness = clamp(pet.sleepiness - 10, 0, 100);
     pet.health = clamp(pet.health + 5, 0, 100);
-  updateStats();
+  updateAllBars();
   showBallForDuration();
   setTimeout(() => finishAction(), 15000);
 }, "play");
@@ -721,7 +714,7 @@ window.playWithPet = effectGuard(function () {
 window.cleanPet = effectGuard(function () {
     pet.cleanliness = clamp(pet.cleanliness + 25, 0, 100);
     pet.happiness = clamp(pet.happiness + 5, 0, 100);
-  updateStats();
+  updateAllBars();
 
   // Start cleaning animation
   st.phase = "cleaning";
@@ -746,7 +739,7 @@ window.sleepPet = effectGuard(function () {
     pet.sleepiness = clamp(pet.sleepiness + 25, 0, 100);
     pet.health = clamp(pet.health + 10, 0, 100);
     pet.hunger = clamp(pet.hunger - 10, 0, 100);
-  updateStats();
+  updateAllBars();
   if (!isSleeping && !sleepSequenceActive && !sleepRequested) {
     sleepRequested = true;
     resumeDirection = direction;
@@ -759,7 +752,7 @@ window.sleepPet = effectGuard(function () {
 window.healPet = effectGuard(function () {
     pet.health = 100;
     pet.happiness = clamp(pet.happiness + 5, 0, 100);
-  updateStats();
+  updateAllBars();
   setTimeout(() => finishAction(), 1000);
 }, "heal");
 
@@ -832,7 +825,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const versionSpan = document.getElementById('versionid');
   if (versionSpan) versionSpan.textContent = versionid;
   resizeCanvas();
-  updateStats();
+  updateAllBars();
   Promise.all([
     loadImages([petImgLeft, petImgRight, petImgSleep, petImgSleepR, pigLeftEatImg, pigRightEatImg, ...cakeImgs]),
     loadBallImages()
