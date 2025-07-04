@@ -26,6 +26,8 @@
     background-color: #006600;
   }
 
+
+/* container for all the things on screen */
 #app {
   display: flex;
   flex-direction: column;
@@ -115,3 +117,85 @@
     background-color: red;
     opacity: 1;
   }
+
+/* part for showing the zzz's */
+
+#zzz-container {
+  position: absolute;
+  top: 60px; /* tweak depending on pig position */
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.zzz {
+  position: absolute;
+  font-size: 2rem;
+  color: #0f0;
+  opacity: 0;
+  animation: floatZ1 3s infinite ease-in-out;
+}
+
+.zzz.z2 {
+  left: -20px;
+  font-size: 1.8rem;
+  animation: floatZ2 3.2s infinite ease-in-out;
+  animation-delay: 0.5s;
+}
+
+.zzz.z3 {
+  left: 20px;
+  font-size: 2.2rem;
+  animation: floatZ3 3.5s infinite ease-in-out;
+  animation-delay: 1s;
+}
+
+/* Hidden class for JS toggling */
+.hidden {
+  display: none;
+}
+
+/* Floating animations with random directions */
+@keyframes floatZ1 {
+  0% {
+    opacity: 0;
+    transform: translateY(0px) rotate(0deg);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-50px) translateX(-10px) rotate(-10deg);
+  }
+}
+
+@keyframes floatZ2 {
+  0% {
+    opacity: 0;
+    transform: translateY(0px) rotate(0deg);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-60px) translateX(5px) rotate(15deg);
+  }
+}
+
+@keyframes floatZ3 {
+  0% {
+    opacity: 0;
+    transform: translateY(0px) rotate(0deg);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-70px) translateX(-5px) rotate(8deg);
+  }
+}
+
