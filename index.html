@@ -42,6 +42,15 @@
     <div class="stat-bar" id="health-bar"></div>
   </div>
 </div>
+
+  <!-- animate the zzz's for the sleeping pig -->
+<div id="zzz-container" class="hidden">
+  <div class="zzz">Z</div>
+  <div class="zzz z2">Z</div>
+  <div class="zzz z3">Z</div>
+</div>
+    
+<!-- display's version number in the footer -->
 <div id="version-footer" style="
     position: fixed;
     right: 20px;
@@ -52,7 +61,7 @@
     pointer-events: none;
   ">
     Version: <span id="versionid"></span> Max
-  </div>
+</div>
 
   <script>
     if ('serviceWorker' in navigator) {
