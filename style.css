@@ -53,32 +53,26 @@
 
 #stats-container {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   gap: 1rem;
   margin-top: 1rem;
 }
 
-#stats-labels {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: flex-start; /* align text left */
-  min-width: 160px; /* keep labels block width */
-  padding-top: 0.8rem; /* push labels down */
-}
-
-#stats-labels .stat-label {
+.stat-row {
   display: flex;
   align-items: center;
-  margin: 0.5rem;  /* lower or increase vertical spacing */
-  gap: 0.5rem;
+  gap: 1.5rem; /* space between label and bar */
 }
 
-#stats-bars {
+.stat-label {
   display: flex;
-  flex-direction: column;
-  margin-left: 1.3rem;
-  gap: 1rem;
+  align-items: center;
+  gap: 0.5rem;
+  width: 160px; /* ensures labels line up vertically */
+  justify-content: flex-start;
+  color: #0f0;
+  font-size: 1rem;
 }
 
  .stat-bar {
@@ -89,17 +83,13 @@
   background-color: #000;
   border-radius: 2px;
   overflow: hidden;
-  display: flex;
 }
 
 .stripe {
 
     width: calc(5% - 1px);
     opacity: 0.3;
-    margin-top: 2px;
-    margin-bottom: 2px;
-    margin-left: 1px;
-    margin-right: 1px;
+    margin: 2px 1px;
     border-radius: 2px;
     background-color: #bbb;
     transition: background-color 0.3s ease, opacity 0.3s ease;
