@@ -781,7 +781,7 @@ function drawBubble(ctx, x, y, r, alpha) {
 
 function createBubble() {
   return {
-    x: petX + PET_WIDTH / 2 + (Math.random() - 0.5) * 80,
+    x: petX + PET_WIDTH / 2 + (Math.random() - 0.5) * 60,
     y: petY + PET_HEIGHT * 2 / 3 - Math.random() * 30,
     radius: 4 + Math.random() * 3,
     alpha: 0.6 + Math.random() * 0.4
