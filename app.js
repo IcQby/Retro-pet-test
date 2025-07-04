@@ -364,14 +364,15 @@ function startSleepSequence() {
 
           const sleepStartTime = Date.now();
 
-          // Animate background from dark (0) to normal (1) during last 3 seconds
           function animateBackground() {
             let elapsed = Date.now() - sleepStartTime;
-            if (elapsed >= transitionStart) {
-              // How far into transition (0 to 1)
+            if (elapsed >= transitionStart && elapsed <= sleepDuration) {
               let t = (elapsed - transitionStart) / transitionDuration;
               if (t > 1) t = 1;
               drawBackground(t);
+            } else if (elapsed < transitionStart) {
+              // Keep dark background before transition starts
+              drawBackground(0);
             }
             if (elapsed < sleepDuration) {
               requestAnimationFrame(animateBackground);
@@ -379,13 +380,12 @@ function startSleepSequence() {
           }
           animateBackground();
 
-          // Wake pig after 10 seconds
+          // Wake pig after sleepDuration
           setTimeout(() => {
-            // Switch background to normal fully 0.5s before changing pig image (handled by animation above)
-            // Just to be safe, force draw normal here:
+            // Ensure background fully normal before pig wakes up
             drawBackground(1);
 
-            currentImg = imgA;
+            currentImg = imgA; // Wake-up pig image
             isSleeping = false;
             pendingWake = true;
             vx = 0;
@@ -407,6 +407,7 @@ function startSleepSequence() {
     }, 500);
   }, 1000);
 }
+
 
 // Show Zzz's above pig's head, offset right if sleeping facing right
 function showZzzAbovePig(x, y) {
