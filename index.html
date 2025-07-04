@@ -21,13 +21,20 @@
       <button onclick="healPet()"> Medicine 🩹</button>
     </div>
 
-    <div id="stats">
-      <p>🍗 Hunger: <span id="hunger"></span></p>
-      <p>💖 Happiness: <span id="happiness"></span></p>
-      <p>✨️ Cleanliness: <span id="cleanliness"></span></p>
-      <p>😴 Sleepiness: <span id="sleepiness"></span></p>
-      <p>❤️ Health: <span id="health"></span></p>
-    </div>
+ <div id="stats-labels">
+    <div class="stat-label"><span class="icon">🍗</span> Hunger</div>
+    <div class="stat-label"><span class="icon">💖</span> Happiness</div>
+    <div class="stat-label"><span class="icon">🧼</span> Cleanliness</div>
+    <div class="stat-label"><span class="icon">😴</span> Sleepiness</div>
+    <div class="stat-label"><span class="icon">❤️</span> Health</div>
+  </div>
+    
+  <div id="stats-bars">
+    <div id="hunger-bar" class="stat-bar"></div>
+    <div id="happiness-bar" class="stat-bar"></div>
+    <div id="cleanliness-bar" class="stat-bar"></div>
+    <div id="sleepiness-bar" class="stat-bar"></div>
+    <div id="health-bar" class="stat-bar"></div>
   </div>
   
 <div id="version-footer" style="
