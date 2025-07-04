@@ -52,7 +52,8 @@
 }
 
 #stats-container {
-  width: 600px;
+  display: flex;
+  align-items: column;
   justify-content: center;
   align-items: flex-start;
   gap: 1rem;
