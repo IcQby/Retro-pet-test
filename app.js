@@ -346,7 +346,7 @@ function startSleepSequence() {
           sleepSequenceActive = false;
           
           // Show Zs above pig's head
-          showZzzAbovePig(pigX, pigY); // pigX and pigY should be the pig's canvas coordinates
+          showZzzAbovePig(petX, petY); // pigX and pigY should be the pig's canvas coordinates
           
           setTimeout(() => {
             currentImg = imgA; isSleeping = false; pendingWake = true; vx = 0; vy = 0;
