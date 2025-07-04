@@ -432,8 +432,6 @@ function startSleepSequence() {
   let sleepImg = (resumeImg === petImgRight) ? petImgSleepR : petImgSleep;
 
   currentImg = imgA;
-  backgroundMode = 'transitioning';
-  transitionStartTime = Date.now();
 
   // Step 1-4: Bouncing animation before sleeping
   setTimeout(() => {
@@ -454,7 +452,8 @@ function startSleepSequence() {
 
           // Start background transition back to normal after 7.5 seconds
           setTimeout(() => {
-
+          backgroundMode = 'transitioning';
+          transitionStartTime = Date.now();
           }, sleepDuration - transitionDuration); // 7500ms
 
           // Wake up after 10 seconds
