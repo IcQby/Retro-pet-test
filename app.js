@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v8.7";
+const versionid = "v8.8";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -123,7 +123,9 @@ const st = {
 // ===============================
 function masterUpdateDrawRoutine() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawBackground();
+  drawBackground(); // This already checks backgroundMode
+
+  // Everything else...
   updateBall(); 
   drawBall(); 
   updateBallOverlapPause();
@@ -142,6 +144,7 @@ function masterUpdateDrawRoutine() {
 
   requestAnimationFrame(masterUpdateDrawRoutine);
 }
+
 
 // ===============================
 // SECTION old 12: RENDERING background
@@ -429,48 +432,31 @@ function startSleepSequence() {
   let sleepImg = (resumeImg === petImgRight) ? petImgSleepR : petImgSleep;
 
   currentImg = imgA;
-  draw(); // Force redraw
 
-  // Step 1: Animate head bobbing
+  // Step 1-4: Bouncing animation before sleeping
   setTimeout(() => {
-    currentImg = imgB; draw();
+    currentImg = imgB;
     setTimeout(() => {
-      currentImg = imgA; draw();
+      currentImg = imgA;
       setTimeout(() => {
-        currentImg = imgB; draw();
+        currentImg = imgB;
         setTimeout(() => {
-          // Step 2: Transition to sleep
+          // Pig falls asleep
           currentImg = sleepImg;
           isSleeping = true;
           sleepSequenceActive = false;
-          draw();
 
+          backgroundMode = 'sleep'; // Instantly darken background
           showZzzAbovePig(petX, petY);
 
-          // Step 3: Background transition setup
-          const sleepDuration = 10000;
-          const transitionDuration = 3000;
-          const transitionStart = sleepDuration - transitionDuration;
-          const sleepStartTime = Date.now();
-
-          function animateBackground() {
-            const elapsed = Date.now() - sleepStartTime;
-            if (elapsed < transitionStart) {
-              drawBackground(0); // Keep dark
-            } else if (elapsed < sleepDuration) {
-              let t = (elapsed - transitionStart) / transitionDuration;
-              drawBackground(Math.min(t, 1)); // Smooth transition
-            }
-            if (elapsed < sleepDuration) {
-              requestAnimationFrame(animateBackground);
-            }
-          }
-
-          animateBackground();
-
-          // Step 4: Wake pig after full sleep
+          // Start background transition back to normal after 7.5 seconds
           setTimeout(() => {
-            drawBackground(1); // Force final normal background
+            backgroundMode = 'transitioning';
+            transitionStartTime = Date.now();
+          }, sleepDuration - transitionDuration); // 7500ms
+
+          // Wake up after 10 seconds
+          setTimeout(() => {
             currentImg = imgA;
             isSleeping = false;
             pendingWake = true;
@@ -478,7 +464,6 @@ function startSleepSequence() {
             vy = 0;
 
             hideZzz();
-            draw();
 
             wakeTimeoutId = setTimeout(() => {
               pendingWake = false;
@@ -486,7 +471,6 @@ function startSleepSequence() {
               sleepSequenceActive = false;
               direction = resumeDirection;
               currentImg = (direction === 1) ? petImgRight : petImgLeft;
-              draw();
               startIdleJump();
             }, 2000);
           }, sleepDuration);
