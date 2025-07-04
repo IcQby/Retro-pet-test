@@ -65,20 +65,21 @@
   gap: 1rem;            /* horizontal space between label and bar */
   width: 100%;
   max-width: 600px;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .stat-label {
-  flex: 0 0 160px;      /* fixed width for labels */
-  text-align: right;
+  flex: 0 0 auto;      /* fixed width for labels */
+  text-align: left;
   color: #0f0;
   font-weight: bold;
+  min-width: 100px
 }
 
 .stat-bar {
   flex: 1;              /* fill remaining space */
   height: 20px;
-  max-width: 400px;
+  max-width: 280px;
   border: 1px solid #0f0;
   background-color: #000;
   border-radius: 2px;
