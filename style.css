@@ -132,7 +132,7 @@
 .zzz {
   position: absolute;
   font-size: 2rem;
-  color: #000;
+  color: #E0E0E0; /* Soft white-ish color for ZZZ */
   opacity: 0;
   animation: floatZ1 3s infinite ease-in-out;
 }
