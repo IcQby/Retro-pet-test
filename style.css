@@ -45,6 +45,7 @@
     box-sizing: border-box;
   }
 
+
 #controls {
   margin: 1rem 0;
   text-align: center;
@@ -52,34 +53,50 @@
 
 #stats-container {
   display: flex;
-  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
   gap: 1rem;
-  max-width: 600px;
-  margin: 1rem auto 0;
-  align-items: center;
+  margin-top: 1rem;
 }
 
-.stat-row {
+#stats {
   display: flex;
-  align-items: center;  /* vertical center label and bar */
-  gap: 1rem;            /* horizontal space between label and bar */
-  width: 100%;
-  max-width: 600px;
-  justify-content: flex-start;
-}
-
-.stat-label {
-  flex: 0 0 auto;      /* fixed width for labels */
-  text-align: left;
+  justify-content: left;
+  align-items: flex-start;
+  gap: 1rem;
+  font-size: 1rem;
   color: #0f0;
-  font-weight: bold;
-  min-width: 100px
+  user-select: none;
+  margin-top: 1rem;
+  width: 100%;
 }
 
-.stat-bar {
-  flex: 1;              /* fill remaining space */
+#stats-labels {
+  flex: 0 0 160px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding-top: 0.8rem; /* push labels down */
+}
+
+#stats-labels .stat-label {
+  display: flex;
+  align-items: center;
+  margin: 0.5rem;  /* lower or increase vertical spacing */
+  gap: 0.5rem;
+}
+
+#stats-bars {
+  display: flex;
+  flex-direction: column;
+  margin-left: 1.3rem;
+  gap: 1rem;
+}
+
+ .stat-bar {
+  display: flex;
   height: 20px;
-  max-width: 280px;
+  width: 300px;
   border: 1px solid #0f0;
   background-color: #000;
   border-radius: 2px;
@@ -88,6 +105,7 @@
 }
 
 .stripe {
+
     width: calc(5% - 1px);
     opacity: 0.3;
     margin-top: 2px;
@@ -98,12 +116,15 @@
     background-color: #bbb;
     transition: background-color 0.3s ease, opacity 0.3s ease;
   }
+
+
 .stripe:last-child {
   margin-right: 2px;
 }
 .stripe:first-child {
   margin-left: 2px;
 }
+
   .stripe.filled.green {
     background-color: #0f0;
     opacity: 1;
