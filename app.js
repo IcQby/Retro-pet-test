@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v7.5";
+const versionid = "v7.6";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -73,7 +73,7 @@ const PET_WIDTH = 102, PET_HEIGHT = 102;
 // ===============================
 // SECTION 3: STATE OBJECTS
 // ===============================
-const pet = { happiness: 50, hunger: 50, cleanliness: 50, health: 50 };
+const pet = { happiness: 50, hunger: 50, sleepiness: 50, cleanliness: 50, health: 50 };
 let petX, petY;
 let vx = 0, vy = 0, gravity = 0.4;
 let direction = -1;
@@ -381,6 +381,7 @@ function finishAction() {
 function updateStats() {
   document.getElementById('happiness').textContent = pet.happiness;
   document.getElementById('hunger').textContent = pet.hunger;
+  document.getElementById('sleepiness').textContent = pet.sleepiness;
   document.getElementById('cleanliness').textContent = pet.cleanliness;
   document.getElementById('health').textContent = pet.health;
 }
@@ -651,24 +652,27 @@ function createBubble() {
 // -- BUTTONS --
 window.feedPet = effectGuard(function () {
   pet.hunger = Math.max(0, pet.hunger - 20);
-  pet.happiness = Math.min(100, pet.happiness + 5);
-  pet.cleanliness = Math.max(100, pet.cleanliness - 5);
+  pet.happiness = Math.min(100, pet.happiness + 10);
+  pet.cleanliness = Math.max(0, pet.cleanliness - 5);
+  pet.sleepiness = Math.min(100, pet.sleepiness + 5);
   updateStats();
   registerBackgroundSync('sync-feed-pet');
   startCakeFeedSequence();
 }, "feed");
 
 window.playWithPet = effectGuard(function () {
-  pet.happiness = Math.min(100, pet.happiness + 10);
-  pet.cleanliness = Math.max(100, pet.cleanliness - 20);
-  pet.hunger = Math.min(100, pet.hunger + 20);
+  pet.happiness = Math.min(100, pet.happiness + 15);
+  pet.cleanliness = Math.max(0, pet.cleanliness - 20);
+  pet.hunger = Math.min(100, pet.hunger + 10);
+  pet.sleepiness = Math.min(100, pet.sleepiness + 10);
+  pet.health = Math.min(100, pet.health + 5);
   updateStats();
   showBallForDuration();
   setTimeout(() => finishAction(), 15000);
 }, "play");
 
 window.cleanPet = effectGuard(function () {
-  pet.cleanliness = Math.min(100, pet.cleanliness + 20);
+  pet.cleanliness = Math.min(100, pet.cleanliness + 25);
   pet.happiness = Math.min(100, pet.happiness + 5);
   updateStats();
 
@@ -692,6 +696,7 @@ function createBubbles() {
 }
 
 window.sleepPet = effectGuard(function () {
+  pet.sleepiness = Math.max(0, pet.sleepiness - 25);
   pet.health = Math.min(100, pet.health + 10);
   pet.hunger = Math.min(100, pet.hunger + 10);
   updateStats();
