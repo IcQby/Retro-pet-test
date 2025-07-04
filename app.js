@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v8.8";
+const versionid = "v8.9";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -432,6 +432,8 @@ function startSleepSequence() {
   let sleepImg = (resumeImg === petImgRight) ? petImgSleepR : petImgSleep;
 
   currentImg = imgA;
+  backgroundMode = 'transitioning';
+  transitionStartTime = Date.now();
 
   // Step 1-4: Bouncing animation before sleeping
   setTimeout(() => {
@@ -440,8 +442,7 @@ function startSleepSequence() {
       currentImg = imgA;
       setTimeout(() => {
         currentImg = imgB;
-        backgroundMode = 'transitioning';
-          transitionStartTime = Date.now();
+
         setTimeout(() => {
           // Pig falls asleep
           currentImg = sleepImg;
