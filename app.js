@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v7.6";
+const versionid = "v8.1";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -649,31 +649,78 @@ function createBubble() {
     alpha: 0.6 + Math.random() * 0.4
   };
 }
+
+// ===================================
 // -- BUTTONS --
+// ===================================
+
+  // Render function for stat bars with color coding
+  function renderStatBar(statValue, barElement) {
+const totalStripes = 20;
+const stripesToFill = Math.round(statValue / 5);
+
+    let colorClass;
+    if (statValue < 30) {
+      colorClass = 'red';
+    } else if (statValue < 50) {
+      colorClass = 'orange';
+    } else {
+      colorClass = 'green';
+    }
+
+    barElement.innerHTML = '';
+
+    for (let i = 0; i < totalStripes; i++) {
+      const stripe = document.createElement('div');
+      stripe.classList.add('stripe');
+
+      if (i < stripesToFill) {
+        stripe.classList.add('filled', colorClass);
+      }
+
+      barElement.appendChild(stripe);
+    }
+  }
+
+  // Update all bars UI
+  function updateAllBars() {
+    renderStatBar(pet.hunger, document.getElementById('hunger-bar'));
+    renderStatBar(pet.happiness, document.getElementById('happiness-bar'));
+    renderStatBar(pet.cleanliness, document.getElementById('cleanliness-bar'));
+    renderStatBar(pet.sleepiness, document.getElementById('sleepiness-bar'));
+    renderStatBar(pet.health, document.getElementById('health-bar'));
+  }
+
+  // Buttons effect implementations (matching your balance from before)
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+
+
 window.feedPet = effectGuard(function () {
-  pet.hunger = Math.max(0, pet.hunger - 20);
-  pet.happiness = Math.min(100, pet.happiness + 10);
-  pet.cleanliness = Math.max(0, pet.cleanliness - 5);
-  pet.sleepiness = Math.min(100, pet.sleepiness + 5);
+  pet.hunger = clamp(pet.hunger + 20, 0, 100);
+  pet.happiness = clamp(pet.happiness + 10, 0, 100);
+  pet.cleanliness = clamp(pet.cleanliness - 5, 0, 100);
   updateStats();
   registerBackgroundSync('sync-feed-pet');
   startCakeFeedSequence();
 }, "feed");
 
 window.playWithPet = effectGuard(function () {
-  pet.happiness = Math.min(100, pet.happiness + 15);
-  pet.cleanliness = Math.max(0, pet.cleanliness - 20);
-  pet.hunger = Math.min(100, pet.hunger + 10);
-  pet.sleepiness = Math.min(100, pet.sleepiness + 10);
-  pet.health = Math.min(100, pet.health + 5);
+    pet.happiness = clamp(pet.happiness + 15, 0, 100);
+    pet.cleanliness = clamp(pet.cleanliness - 20, 0, 100);
+    pet.hunger = clamp(pet.hunger - 10, 0, 100);
+    pet.sleepiness = clamp(pet.sleepiness - 10, 0, 100);
+    pet.health = clamp(pet.health + 5, 0, 100);
   updateStats();
   showBallForDuration();
   setTimeout(() => finishAction(), 15000);
 }, "play");
 
 window.cleanPet = effectGuard(function () {
-  pet.cleanliness = Math.min(100, pet.cleanliness + 25);
-  pet.happiness = Math.min(100, pet.happiness + 5);
+    pet.cleanliness = clamp(pet.cleanliness + 25, 0, 100);
+    pet.happiness = clamp(pet.happiness + 5, 0, 100);
   updateStats();
 
   // Start cleaning animation
@@ -696,9 +743,9 @@ function createBubbles() {
 }
 
 window.sleepPet = effectGuard(function () {
-  pet.sleepiness = Math.max(0, pet.sleepiness - 25);
-  pet.health = Math.min(100, pet.health + 10);
-  pet.hunger = Math.min(100, pet.hunger + 10);
+    pet.sleepiness = clamp(pet.sleepiness + 25, 0, 100);
+    pet.health = clamp(pet.health + 10, 0, 100);
+    pet.hunger = clamp(pet.hunger - 10, 0, 100);
   updateStats();
   if (!isSleeping && !sleepSequenceActive && !sleepRequested) {
     sleepRequested = true;
@@ -710,14 +757,37 @@ window.sleepPet = effectGuard(function () {
 }, "sleep");
 
 window.healPet = effectGuard(function () {
-  pet.health = 100;
-  pet.happiness = Math.min(100, pet.happiness + 5);
+    pet.health = 100;
+    pet.happiness = clamp(pet.happiness + 5, 0, 100);
   updateStats();
   setTimeout(() => finishAction(), 1000);
 }, "heal");
 
 
+  // Attach event listeners to buttons
+  document.getElementById('btn-feed').addEventListener('click', () => {
+    feedPet();
+    updateAllBars();
+  });
+  document.getElementById('btn-play').addEventListener('click', () => {
+    playWithPet();
+    updateAllBars();
+  });
+  document.getElementById('btn-clean').addEventListener('click', () => {
+    cleanPet();
+    updateAllBars();
+  });
+  document.getElementById('btn-sleep').addEventListener('click', () => {
+    sleepPet();
+    updateAllBars();
+  });
+  document.getElementById('btn-heal').addEventListener('click', () => {
+    healPet();
+    updateAllBars();
+  });
 
+  // Initialize bars on page load
+  updateAllBars();
 
 
 
