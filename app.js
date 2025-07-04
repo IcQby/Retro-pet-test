@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v8.1";
+const versionid = "v8.2";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -341,9 +341,16 @@ function startSleepSequence() {
     currentImg = imgB; setTimeout(() => {
       currentImg = imgA; setTimeout(() => {
         currentImg = imgB; setTimeout(() => {
-          currentImg = sleepImg; isSleeping = true; sleepSequenceActive = false;
+          currentImg = sleepImg;
+          isSleeping = true;
+          sleepSequenceActive = false;
+          
+          // Show Zs above pig's head
+          showZzzAbovePig(pigX, pigY); // pigX and pigY should be the pig's canvas coordinates
+          
           setTimeout(() => {
             currentImg = imgA; isSleeping = false; pendingWake = true; vx = 0; vy = 0;
+            hideZzz();
             wakeTimeoutId = setTimeout(() => {
               pendingWake = false; sleepSequenceStep = 0; sleepSequenceActive = false;
               direction = resumeDirection;
@@ -355,6 +362,24 @@ function startSleepSequence() {
       }, 500);
     }, 500);
   }, 1000);
+}
+
+// code to add in the zzzz's
+function showZzzAbovePig(x, y) {
+  const canvas = document.getElementById("pet-canvas");
+  const zzzContainer = document.getElementById("zzz-container");
+  const rect = canvas.getBoundingClientRect();
+
+  const offsetX = rect.left + x;
+  const offsetY = rect.top + y;
+
+  zzzContainer.style.left = `${offsetX}px`;
+  zzzContainer.style.top = `${offsetY - 40}px`; // adjust based on pig height
+  zzzContainer.classList.remove("hidden");
+}
+
+function hideZzz() {
+  document.getElementById("zzz-container").classList.add("hidden");
 }
 
 // ===============================
