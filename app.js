@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v8.3";
+const versionid = "v8.4";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -811,11 +811,28 @@ window.addEventListener('resize', resizeCanvas);
 // SECTION 12: RENDERING
 // ===============================
 function drawBackground() {
-  ctx.fillStyle = '#90EE90';
-  ctx.fillRect(0, getGroundY(), canvas.width, canvas.height - getGroundY());
-  ctx.fillStyle = '#ADD8E6';
-  ctx.fillRect(0, 0, canvas.width, getGroundY());
+  const skyHeight = canvas.height * 0.75;
+  const grassHeight = canvas.height - skyHeight;
+
+  if (isSleeping) {
+    // Dark sky
+    ctx.fillStyle = '#001022';
+    ctx.fillRect(0, 0, canvas.width, skyHeight);
+
+    // Darker grass
+    ctx.fillStyle = '#003300';
+    ctx.fillRect(0, skyHeight, canvas.width, grassHeight);
+  } else {
+    // Daytime sky
+    ctx.fillStyle = '#ADD8E6';
+    ctx.fillRect(0, 0, canvas.width, skyHeight);
+
+    // Daytime grass
+    ctx.fillStyle = '#90EE90';
+    ctx.fillRect(0, skyHeight, canvas.width, grassHeight);
+  }
 }
+
 
 // ===============================
 // SECTION 13: SERVICE WORKER & BACKGROUND SYNC
