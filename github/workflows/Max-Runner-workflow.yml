@@ -1,0 +1,56 @@
+name: Deploy Retro Pet Game to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main # Trigger on pushes to your 'main' branch
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+# Grant GITHUB_TOKEN the necessary permissions to deploy to GitHub Pages
+permissions:
+  contents: read      # For actions/checkout
+  pages: write        # For actions/deploy-pages
+  id-token: write     # For OpenID Connect (OIDC) authentication with deploy-pages
+
+jobs:
+  build:
+    # Use your Synology self-hosted runner for the build step
+    runs-on: [self-hosted, synology, retro-pet, linux, x64] 
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Set to your game's Node.js version
+          cache: 'npm'       # Caches npm dependencies to speed up builds
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build game
+        # Replace 'npm run build' with the actual command that generates your static game files.
+        # Ensure your game builds into a single, accessible directory (e.g., 'dist', 'build', 'public').
+        run: npm run build 
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # IMPORTANT: This 'path' must point to the directory containing your *built* game files.
+          # For many JS build tools, this is often 'dist', 'build', or 'public'.
+          # You will need to verify what your 'npm run build' command outputs.
+          path: './dist' # Example: change 'dist' if your build output goes elsewhere
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest # Recommended: Use GitHub-hosted runner for the deployment step for security and reliability
+    needs: build # This job depends on the 'build' job completing successfully
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
