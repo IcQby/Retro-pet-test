@@ -3,7 +3,7 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v8.10";
+const versionid = "v9.1";
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
@@ -29,6 +29,33 @@ cakeImgs[0].src = 'icon/cake1.png';
 cakeImgs[1].src = 'icon/cake2.png';
 cakeImgs[2].src = 'icon/cake3.png';
 cakeImgs[3].src = 'icon/cake4.png';
+
+const pillImgs = [
+  new Image(), new Image(), new Image(), new Image(), new Image(),
+];
+pillImgs[0].src = 'icon/pill-blue.png';
+pillImgs[1].src = 'icon/pill-red.png';
+pillImgs[2].src = 'icon/pill-green.png';
+pillImgs[3].src = 'icon/pill-yellow.png';
+pillImgs[4].src = 'icon/pill-purple.png';
+
+const thermLImgs = [
+  new Image(), new Image(), new Image(), new Image(),
+];
+thermLImgs[0].src = 'icon/therm-L1.png';
+thermLImgs[1].src = 'icon/therm-L2.png';
+thermLImgs[2].src = 'icon/therm-L3.png';
+thermLImgs[3].src = 'icon/therm-L4.png';
+
+const thermRImgs = [
+  new Image(), new Image(), new Image(), new Image(),
+];
+thermRImgs[0].src = 'icon/therm-R1.png';
+thermRImgs[1].src = 'icon/therm-R2.png';
+thermRImgs[2].src = 'icon/therm-R3.png';
+thermRImgs[3].src = 'icon/therm-R4.png';
+
+
 
 const ballImages = [
   'icon/ball1.png', 'icon/ball2.png', 'icon/ball3.png'
@@ -118,16 +145,52 @@ const st = {
   bubbles: [], // if you want to track bubble positions
 };
 
+// ================= HEAL/THERMOMETER SEQUENCE =================
+
+const thermImgsL = [ // Left-facing thermometer animation frames
+  (() => { let img = new Image(); img.src = 'icon/therm-L1.png'; return img; })(),
+  (() => { let img = new Image(); img.src = 'icon/therm-L2.png'; return img; })(),
+  (() => { let img = new Image(); img.src = 'icon/therm-L3.png'; return img; })(),
+  (() => { let img = new Image(); img.src = 'icon/therm-L4.png'; return img; })()
+];
+const thermImgsR = [ // Right-facing thermometer animation frames
+  (() => { let img = new Image(); img.src = 'icon/therm-R1.png'; return img; })(),
+  (() => { let img = new Image(); img.src = 'icon/therm-R2.png'; return img; })(),
+  (() => { let img = new Image(); img.src = 'icon/therm-R3.png'; return img; })(),
+  (() => { let img = new Image(); img.src = 'icon/therm-R4.png'; return img; })()
+];
+
+let healSequenceActive = false;
+let thermState = null;
+
 // ===============================
 // SECTION 4: MASTER UPDATE/DRAW ROUTINE
 // ===============================
-function masterUpdateDrawRoutine() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawBackground(); // This already checks backgroundMode
+function drawThermometerOverlay() {
+  if (!healSequenceActive || !thermState) return;
 
-  // Everything else...
-  updateBall(); 
-  drawBall(); 
+  ctx.save();
+  ctx.globalAlpha = thermState.alpha;
+
+  // Select correct thermometer image frame based on facing and animation step
+  let imgArr = thermState.facing === "left" ? thermImgsL : thermImgsR;
+  let frameIdx = thermState.frame;
+  let img = imgArr[frameIdx] || imgArr[0];
+
+  // Draw thermometer at its current x/y
+  ctx.drawImage(img, thermState.x, thermState.y);
+
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+
+const oldMasterUpdateDrawRoutine = masterUpdateDrawRoutine;
+masterUpdateDrawRoutine = function() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawBackground();
+  updateBall();
+  drawBall();
   updateBallOverlapPause();
 
   if (cakeFeedActive) {
@@ -142,9 +205,10 @@ function masterUpdateDrawRoutine() {
     ctx.drawImage(currentImg, petX, petY, PET_WIDTH, PET_HEIGHT);
   }
 
-  requestAnimationFrame(masterUpdateDrawRoutine);
-}
+  drawThermometerOverlay(); // <--- Add this line
 
+  requestAnimationFrame(masterUpdateDrawRoutine);
+};
 
 // ===============================
 // SECTION old 12: RENDERING background
@@ -894,13 +958,121 @@ window.sleepPet = effectGuard(function () {
   setTimeout(() => finishAction(), 14500);
 }, "sleep");
 
+// ---- Start the thermometer animation when healPet is called ----
 window.healPet = effectGuard(function () {
-    pet.health = 100;
-    pet.happiness = clamp(pet.happiness + 5, 0, 100);
+  pet.health = 100;
+  pet.happiness = clamp(pet.happiness + 5, 0, 100);
   updateAllBars();
-  setTimeout(() => finishAction(), 100);
-}, "heal");
 
+  // Start thermometer animation sequence!
+  healSequenceActive = true;
+
+  // Save direction and image to restore after
+  const preHealDirection = direction;
+  const preHealImg = currentImg;
+
+  // When pig next lands on ground, start thermometer overlay
+  let healAnimationStarted = false;
+
+  function healSequenceStep() {
+    if (!healSequenceActive) return;
+
+    // Wait for pig to land on ground the first time
+    if (!healAnimationStarted) {
+      if (petY >= getGroundY()) {
+        healAnimationStarted = true;
+
+        // Stop pig movement
+        vx = 0; vy = 0;
+
+        // Thermometer starts just in front of pig (10px ahead), 30px down from top
+        let facing = (direction === 1) ? "right" : "left";
+        let tImgs = facing === "left" ? thermImgsL : thermImgsR;
+        let tWidth = tImgs[0].width || 26; // fallback width if not loaded
+        let tHeight = tImgs[0].height || 86;
+
+        let offsetX = (direction === 1)
+          ? (petX + PET_WIDTH + 10) // right
+          : (petX - tWidth - 10);  // left
+
+        let offsetY = petY + 30;
+
+        thermState = {
+          x: offsetX,
+          y: offsetY,
+          startX: offsetX,
+          startY: offsetY,
+          facing,
+          frame: 0,
+          alpha: 1,
+          behindPig: false
+        };
+
+        // Calculate destination X for thermometer: just 5px behind pig
+        let finalX = (direction === 1)
+          ? (petX + PET_WIDTH - 5 - tWidth)
+          : (petX + 5);
+
+        // Animate thermometer moving to behind pig over 0.5s (500ms)
+        let moveDuration = 500;
+        let moveStart = performance.now();
+
+        function animateMove() {
+          let now = performance.now();
+          let elapsed = now - moveStart;
+          let t = Math.min(elapsed / moveDuration, 1);
+
+          thermState.x = thermState.startX + (finalX - thermState.startX) * t;
+          thermState.y = thermState.startY; // keep y constant
+
+          if (t < 1) {
+            requestAnimationFrame(animateMove);
+          } else {
+            // Snap to final position
+            thermState.x = finalX;
+            thermState.behindPig = true;
+
+            // Now advance thermometer frames
+            let frameTimers = [];
+            let frames = [1, 2, 3];
+            frames.forEach((frameIdx, i) => {
+              frameTimers.push(setTimeout(() => { if (thermState) thermState.frame = frameIdx; }, 500 * (i + 1)));
+            });
+
+            // After all frames, hold for 1s, then fade out over 2s
+            setTimeout(() => {
+              let fadeStart = performance.now();
+              function doFade() {
+                let fNow = performance.now();
+                let fElapsed = fNow - fadeStart;
+                let fT = Math.min(fElapsed / 2000, 1);
+                if (thermState) thermState.alpha = 1 - fT;
+                if (fT < 1) {
+                  requestAnimationFrame(doFade);
+                } else {
+                  // End of animation: cleanup, resume idle
+                  healSequenceActive = false;
+                  thermState = null;
+                  direction = preHealDirection;
+                  currentImg = preHealImg;
+                  startIdleJump();
+                  finishAction();
+                }
+              }
+              doFade();
+            }, 2000 + 500 * 3); // Hold for 1s after last frame (total ~3.5s after move starts)
+          }
+        }
+        animateMove();
+      }
+    }
+
+    if (healSequenceActive) requestAnimationFrame(healSequenceStep);
+  }
+
+  healSequenceStep();
+
+}, "heal");
 
 
 // ===============================
