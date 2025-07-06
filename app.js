@@ -3,11 +3,13 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v9.1.1";
+const versionid = "v9.2";
+
 
 // ===============================
 // SECTION 1: ASSET MANAGEMENT
 // ===============================
+
 const petImgLeft = new Image();
 const petImgRight = new Image();
 const petImgSleep = new Image();
@@ -96,6 +98,8 @@ function loadBallImages() {
 const canvas = document.getElementById('pet-canvas');
 const ctx = canvas.getContext('2d');
 const PET_WIDTH = 102, PET_HEIGHT = 102;
+const THERM_HEIGHT = 17; // Desired height for the thermometer images
+const THERM_WIDTH = 17 * (85 / 27); // Calculate width based on original aspect ratio (26px original width, 86px original height)
 
 // ===============================
 // SECTION 3: STATE OBJECTS
@@ -178,15 +182,14 @@ function drawThermometerOverlay() {
   let img = imgArr[frameIdx] || imgArr[0];
 
   // Draw thermometer at its current x/y
-  ctx.drawImage(img, thermState.x, thermState.y);
+  ctx.drawImage(img, thermState.x, thermState.y, THERM_WIDTH, THERM_HEIGHT);
 
   ctx.globalAlpha = 1;
   ctx.restore();
 }
 
 
-const oldMasterUpdateDrawRoutine = masterUpdateDrawRoutine;
-masterUpdateDrawRoutine = function() {
+function masterUpdateDrawRoutine() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawBackground();
   updateBall();
@@ -988,12 +991,10 @@ window.healPet = effectGuard(function () {
         // Thermometer starts just in front of pig (10px ahead), 30px down from top
         let facing = (direction === 1) ? "right" : "left";
         let tImgs = facing === "left" ? thermImgsL : thermImgsR;
-        let tWidth = tImgs[0].width || 26; // fallback width if not loaded
-        let tHeight = tImgs[0].height || 86;
 
         let offsetX = (direction === 1)
           ? (petX + PET_WIDTH + 10) // right
-          : (petX - tWidth - 10);  // left
+          : (petX - THERM_WIDTH - 10);  // left
 
         let offsetY = petY + 30;
 
@@ -1010,8 +1011,8 @@ window.healPet = effectGuard(function () {
 
         // Calculate destination X for thermometer: just 5px behind pig
         let finalX = (direction === 1)
-          ? (petX + PET_WIDTH - 5 - tWidth)
-          : (petX + 5);
+          ? (petX + PET_WIDTH -15)
+          : (petX - THERM_WIDTH + 15);
 
         // Animate thermometer moving to behind pig over 0.5s (500ms)
         let moveDuration = 500;
@@ -1135,10 +1136,17 @@ window.addEventListener('DOMContentLoaded', () => {
   if (versionSpan) versionSpan.textContent = versionid;
   resizeCanvas();
   updateAllBars();
-  Promise.all([
-    loadImages([petImgLeft, petImgRight, petImgSleep, petImgSleepR, pigLeftEatImg, pigRightEatImg, ...cakeImgs]),
-    loadBallImages()
-  ])
+ Promise.all([
+  loadImages([
+    petImgLeft, petImgRight, petImgSleep, petImgSleepR,
+    pigLeftEatImg, pigRightEatImg,
+    ...cakeImgs,
+    ...pillImgs,
+    ...thermLImgs,
+    ...thermRImgs
+  ]),
+  loadBallImages()
+])
     .then(() => {
       petX = canvas.width - PET_WIDTH - 10;
       petY = canvas.height - PET_HEIGHT;
