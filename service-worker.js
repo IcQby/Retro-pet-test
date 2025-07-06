@@ -6,6 +6,7 @@ const urlsToCache = [
   './style.css',
   './manifest.json',
   './icon/icon-512.png',
+  './icon/favicon.ico',
   './icon/ball1.png',
   './icon/ball2.png',
   './icon/ball3.png',
@@ -19,6 +20,19 @@ const urlsToCache = [
   './icon/pig-sleepR.png',
   './icon/pig-right-eat.png',
   './icon/pig-left-eat.png',
+  './icon/pill-blue.png',
+  './icon/pill-red.png',
+  './icon/pill-yellow.png',
+  './icon/pill-green.png',
+  './icon/pill-purple.png',
+  './icon/therm-L1.png',
+  './icon/therm-L2.png',
+  './icon/therm-L3.png',
+  './icon/therm-L4.png',
+  './icon/therm-R1.png',
+  './icon/therm-R2.png',
+  './icon/therm-R3.png',
+  './icon/therm-R4.png',
   
 ];
 
