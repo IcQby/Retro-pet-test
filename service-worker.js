@@ -58,7 +58,7 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') {
-    // Just do network fetch, no caching
+    // Just do network fetch, no caching for non-GET requests
     event.respondWith(fetch(event.request));
     return;
   }
@@ -66,13 +66,27 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     fetch(event.request)
       .then(networkResponse => {
-        if (networkResponse && networkResponse.status === 200) {
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, networkResponse.clone());
-          });
+        // Check if we received a valid response and it's cacheable
+        // (e.g., status 200 and not an opaque response)
+        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+          return networkResponse; // If not valid/cacheable, just return it without caching
         }
+
+        // IMPORTANT: Clone the response BEFORE its body is consumed by the browser.
+        // The original networkResponse will be returned to the browser.
+        // The cloned response (responseToCache) will be used for caching.
+        const responseToCache = networkResponse.clone();
+
+        caches.open(CACHE_NAME).then(cache => {
+          cache.put(event.request, responseToCache);
+        });
+
+        // Always return the original networkResponse to the browser
         return networkResponse;
       })
-      .catch(() => caches.match(event.request))
+      .catch(() => {
+        // If network request fails (e.g., offline), try to get from cache
+        return caches.match(event.request);
+      })
   );
 });
