@@ -1,4 +1,5 @@
-{  "id": "https://icqby.github.io/Retro-pet-test/",
+{ 
+  "id": "https://icqby.github.io/Retro-pet-test/",
   "name": "Retro Pet",
   "short_name": "Retro pet",
   "description": "A retro-style virtual pet game.",
@@ -26,4 +27,5 @@
       "id": "com.IcQby.RetroPet"
     }
   ],
-  "prefer_related_applications": false }
+  "prefer_related_applications": false
+}
