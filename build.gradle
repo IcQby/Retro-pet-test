@@ -1,0 +1,10 @@
+android {
+    defaultConfig {
+        applicationId "com.MaxRunner.Retropet" // <--- Modify this line
+        minSdkVersion 14 // 14 = android 4.0, 21 = android 5
+        targetSdkVersion 34
+        versionCode 9
+        versionName "9.2"
+    }
+    // ... other configurations
+}
