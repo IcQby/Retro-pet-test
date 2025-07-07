@@ -18,7 +18,7 @@
   },
   "icons": [
     {
-      "src": "https://githubusercontent.com/IcQby/Retro-pet-testicon/main/icon/icon-512.png",
+      "src": "https://raw.githubusercontent.com/IcQby/Retro-pet-test/refs/heads/main/icon/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
