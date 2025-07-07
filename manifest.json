@@ -1,10 +1,10 @@
 {
-  "id": "/Retro-pet-test/",
+  "id": "https://icqby.github.io/Retro-pet-test/",
   "name": "Retro Pet",
   "short_name": "Retro pet",
   "description": "A retro-style virtual pet game.",
-  "start_url": "/Retro-pet-test/",
-  "scope": "/Retro-pet-test/",
+  "start_url": "https://icqby.github.io/Retro-pet-test/",
+  "scope": "https://icqby.github.io/Retro-pet-test/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#00ff00",
@@ -13,9 +13,6 @@
   "dir": "ltr",
   "categories": ["game", "entertainment"],
   "iarc_rating_id": "europe.pegi.3",
-  "launch_handler": {
-    "client_mode": "navigate"
-  },
   "icons": [
     {
       "src": "https://raw.githubusercontent.com/IcQby/Retro-pet-test/main/icon/icon-512.png",
