@@ -2,7 +2,7 @@
   "id": "/Retro-pet-test/",
   "name": "Retro Pet",
   "short_name": "Retro pet",
-  "description": "A retro-style virtual pet game inspired by Tamagotchi.",
+  "description": "A retro-style virtual pet game.",
   "start_url": "/Retro-pet-test/",
   "scope": "/Retro-pet-test/",
   "display": "standalone",
@@ -16,6 +16,7 @@
   "launch_handler": {
     "client_mode": "navigate"
   },
+  "start_url": "https://github.com/IcQby/retro-pet-test/",
   "icons": [
     {
       "src": "icon/icon-512.png",
@@ -26,8 +27,8 @@
   "related_applications": [
     {
       "platform": "play",
-      "url": "https://play.google.com/store/apps/details?id=com.example.retropet",
-      "id": "com.example.retropet"
+      "url": "https://play.google.com/store/apps/details?id=com.IcQby.RetroPet",
+      "id": "com.IcQby.RetroPet"
     }
   ],
   "prefer_related_applications": false
