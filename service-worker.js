@@ -2,6 +2,7 @@ const CACHE_NAME = 'retro-pet-cache-test'; // Update this to invalidate old cach
 const urlsToCache = [
   './',
   './index.html',
+  './build.gradle',
   './app.js',
   './style.css',
   './manifest.json',
