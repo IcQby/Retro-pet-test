@@ -1,4 +1,3 @@
-{
   "id": "https://icqby.github.io/Retro-pet-test/",
   "name": "Retro Pet",
   "short_name": "Retro pet",
@@ -28,4 +27,3 @@
     }
   ],
   "prefer_related_applications": false
-}
