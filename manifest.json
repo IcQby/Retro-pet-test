@@ -3,7 +3,7 @@
   "name": "Retro Pet",
   "short_name": "Retro pet",
   "description": "A retro-style virtual pet game.",
-  "start_url": "Retro-pet-test/",
+  "start_url": "/",
   "scope": "Retro-pet-test/",
   "display": "standalone",
   "background_color": "#000000",
