@@ -3,17 +3,20 @@
 // ===============================
 
 // --- Version Info ---
-const versionid = "v9.2";
+const versionid = "v9.3";
 
 
-// ===============================
+//===============================
 // SECTION 1: ASSET MANAGEMENT
-// ===============================
+//===============================
 
+// Initializing Image objects
 const petImgLeft = new Image();
 const petImgRight = new Image();
 const petImgSleep = new Image();
 const petImgSleepR = new Image();
+
+// Assigning sources (do this directly after creation or in a centralized loader)
 petImgLeft.src = 'icon/pig-left.png';
 petImgRight.src = 'icon/pig-right.png';
 petImgSleep.src = 'icon/pig-sleep.png';
@@ -24,73 +27,79 @@ const pigRightEatImg = new Image();
 pigLeftEatImg.src = 'icon/pig-left-eat.png';
 pigRightEatImg.src = 'icon/pig-right-eat.png';
 
-const cakeImgs = [
-  new Image(), new Image(), new Image(), new Image()
-];
+const cakeImgs = [new Image(), new Image(), new Image(), new Image()];
 cakeImgs[0].src = 'icon/cake1.png';
 cakeImgs[1].src = 'icon/cake2.png';
 cakeImgs[2].src = 'icon/cake3.png';
 cakeImgs[3].src = 'icon/cake4.png';
 
-const pillImgs = [
-  new Image(), new Image(), new Image(), new Image(), new Image(),
-];
+const pillImgs = [new Image(), new Image(), new Image(), new Image(), new Image()];
 pillImgs[0].src = 'icon/pill-blue.png';
 pillImgs[1].src = 'icon/pill-red.png';
 pillImgs[2].src = 'icon/pill-green.png';
 pillImgs[3].src = 'icon/pill-yellow.png';
 pillImgs[4].src = 'icon/pill-purple.png';
 
-const thermLImgs = [
-  new Image(), new Image(), new Image(), new Image(),
-];
+const thermLImgs = [new Image(), new Image(), new Image(), new Image()];
 thermLImgs[0].src = 'icon/therm-L1.png';
 thermLImgs[1].src = 'icon/therm-L2.png';
 thermLImgs[2].src = 'icon/therm-L3.png';
 thermLImgs[3].src = 'icon/therm-L4.png';
 
-const thermRImgs = [
-  new Image(), new Image(), new Image(), new Image(),
-];
+const thermRImgs = [new Image(), new Image(), new Image(), new Image()];
 thermRImgs[0].src = 'icon/therm-R1.png';
 thermRImgs[1].src = 'icon/therm-R2.png';
 thermRImgs[2].src = 'icon/therm-R3.png';
 thermRImgs[3].src = 'icon/therm-R4.png';
-
-
 
 const ballImages = [
   'icon/ball1.png', 'icon/ball2.png', 'icon/ball3.png'
 ];
 const BALL_DISPLAY_SIZE = 50;
 const BALL_RADIUS = BALL_DISPLAY_SIZE / 2;
-let ballImgObjects = [];
+let ballImgObjects = []; // This will be populated by loadBallImages
 
-function loadImages(images) {
-  return Promise.all(
-    images.map(
-      img => new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-      })
-    )
-  );
+function loadImage(imgElement) {
+    return new Promise((resolve, reject) => {
+        if (imgElement.complete && imgElement.naturalWidth !== 0) { // Check if already loaded
+            resolve();
+        } else {
+            imgElement.onload = () => {
+                console.log(`Image loaded: ${imgElement.src}`); // Debugging line
+                resolve();
+            };
+            imgElement.onerror = (e) => {
+                console.error(`Error loading image: ${imgElement.src}`, e); // Debugging line
+                reject(e);
+            };
+        }
+    });
 }
+
+function loadImages(imageElements) {
+    return Promise.all(imageElements.map(loadImage));
+}
+
 function loadBallImages() {
-  return Promise.all(
-    ballImages.map(
-      (src, i) => new Promise((resolve, reject) => {
-        const img = new Image();
-        img.src = src;
-        img.onload = () => {
-          ballImgObjects[i] = img;
-          resolve();
-        };
-        img.onerror = reject;
-      })
-    )
-  );
+    return Promise.all(
+        ballImages.map(
+            (src, i) => new Promise((resolve, reject) => {
+                const img = new Image();
+                img.src = src;
+                img.onload = () => {
+                    ballImgObjects[i] = img;
+                    console.log(`Ball image loaded: ${src}`); // Debugging line
+                    resolve();
+                };
+                img.onerror = (e) => {
+                    console.error(`Error loading ball image: ${src}`, e); // Debugging line
+                    reject(e);
+                };
+            })
+        )
+    );
 }
+
 
 // ===============================
 // SECTION 2: GLOBAL CONSTANTS & CANVAS
@@ -98,6 +107,9 @@ function loadBallImages() {
 const canvas = document.getElementById('pet-canvas');
 const ctx = canvas.getContext('2d');
 const PET_WIDTH = 102, PET_HEIGHT = 102;
+const PILL_WIDTH = 30; // Example: Define your pill width
+const PILL_HEIGHT = 30; // Example: Define your pill height
+
 const THERM_HEIGHT = 17; // Desired height for the thermometer images
 const THERM_WIDTH = 17 * (85 / 27); // Calculate width based on original aspect ratio (26px original width, 86px original height)
 
@@ -166,6 +178,7 @@ const thermImgsR = [ // Right-facing thermometer animation frames
 
 let healSequenceActive = false;
 let thermState = null;
+let pillstate = null;
 
 // ===============================
 // SECTION 4: MASTER UPDATE/DRAW ROUTINE
@@ -185,6 +198,23 @@ function drawThermometerOverlay() {
   ctx.drawImage(img, thermState.x, thermState.y, THERM_WIDTH, THERM_HEIGHT);
 
   ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+
+function drawPillOverlay() {
+ if (!healSequenceActive || !pillstate) return; // Only draw if pillstate is active
+
+  ctx.save();
+  ctx.globalAlpha = pillstate.alpha; // Apply fading if necessary
+
+  // Select the correct pill image frame
+  let pillImg = pillImgs[pillstate.frame] || pillImgs[0];
+
+  // Draw the pill at its current x/y with defined width and height
+  ctx.drawImage(pillImg, pillstate.x, pillstate.y, PILL_WIDTH, PILL_HEIGHT);
+
+  ctx.globalAlpha = 1; // Reset alpha
   ctx.restore();
 }
 
@@ -209,6 +239,8 @@ function masterUpdateDrawRoutine() {
   }
 
   drawThermometerOverlay(); // <--- Add this line
+  drawPillOverlay();
+
 
   requestAnimationFrame(masterUpdateDrawRoutine);
 };
@@ -961,119 +993,172 @@ window.sleepPet = effectGuard(function () {
   setTimeout(() => finishAction(), 14500);
 }, "sleep");
 
-// ---- Start the thermometer animation when healPet is called ----
+
+//==========================================
+// HEAL SEQUENCE BUTTON PRESS
+//==========================================
+
 window.healPet = effectGuard(function () {
-  pet.health = 100;
-  pet.happiness = clamp(pet.happiness + 5, 0, 100);
-  updateAllBars();
+    pet.health = clamp(pet.health + 25, 0, 100);
+    pet.happiness = clamp(pet.happiness -10, 0, 100);
+    updateAllBars();
 
-  // Start thermometer animation sequence!
-  healSequenceActive = true;
+    // Start thermometer animation sequence!
+    healSequenceActive = true;
 
-  // Save direction and image to restore after
-  const preHealDirection = direction;
-  const preHealImg = currentImg;
+    // Save direction and image to restore after
+    const preHealDirection = direction;
+    const preHealImg = currentImg; // This will save the idle pig image
 
-  // When pig next lands on ground, start thermometer overlay
-  let healAnimationStarted = false;
+    let healAnimationStarted = false;
 
-  function healSequenceStep() {
-    if (!healSequenceActive) return;
+    function healSequenceStep() {
+        if (!healSequenceActive) return;
 
-    // Wait for pig to land on ground the first time
-    if (!healAnimationStarted) {
-      if (petY >= getGroundY()) {
-        healAnimationStarted = true;
+        // Wait for pig to land on ground the first time
+        if (!healAnimationStarted) {
+            if (petY >= getGroundY()) {
+                healAnimationStarted = true; // Mark animation as started
 
-        // Stop pig movement
-        vx = 0; vy = 0;
+                // Stop pig movement
+                vx = 0; vy = 0;
 
-        // Thermometer starts just in front of pig (10px ahead), 30px down from top
-        let facing = (direction === 1) ? "right" : "left";
-        let tImgs = facing === "left" ? thermImgsL : thermImgsR;
+                // --- THERMOMETER ANIMATION SETUP ---
+                let facing = (direction === 1) ? "right" : "left";
+                let tImgs = facing === "left" ? thermImgsL : thermImgsR;
 
-        let offsetX = (direction === 1)
-          ? (petX + PET_WIDTH + 10) // right
-          : (petX - THERM_WIDTH - 10);  // left
+                // Adjust thermometer initial position based on new smaller size
+                let offsetX = (direction === 1)
+                    ? (petX + PET_WIDTH + 10) // Adjusted small offset right of pig
+                    : (petX - THERM_WIDTH - 10); // Adjusted small offset left of pig
 
-        let offsetY = petY + 30;
+                let offsetY = petY + 30;
 
-        thermState = {
-          x: offsetX,
-          y: offsetY,
-          startX: offsetX,
-          startY: offsetY,
-          facing,
-          frame: 0,
-          alpha: 1,
-          behindPig: false
-        };
+                thermState = {
+                    x: offsetX,
+                    y: offsetY,
+                    startX: offsetX,
+                    startY: offsetY,
+                    facing,
+                    frame: 0,
+                    alpha: 1,
+                    behindPig: false
+                };
 
-        // Calculate destination X for thermometer: just 5px behind pig
-        let finalX = (direction === 1)
-          ? (petX + PET_WIDTH -15)
-          : (petX - THERM_WIDTH + 15);
+                // Calculate destination X for thermometer: just 5px behind pig (adjusted)
+                let finalX = (direction === 1)
+                    ? (petX + PET_WIDTH - 15)
+                    : (petX - THERM_WIDTH + 15);
 
-        // Animate thermometer moving to behind pig over 0.5s (500ms)
-        let moveDuration = 500;
-        let moveStart = performance.now();
+                let moveDuration = 500;
+                let moveStart = performance.now();
 
-        function animateMove() {
-          let now = performance.now();
-          let elapsed = now - moveStart;
-          let t = Math.min(elapsed / moveDuration, 1);
+                function animateMove() {
+                    let now = performance.now();
+                    let elapsed = now - moveStart;
+                    let t = Math.min(elapsed / moveDuration, 1);
 
-          thermState.x = thermState.startX + (finalX - thermState.startX) * t;
-          thermState.y = thermState.startY; // keep y constant
+                    thermState.x = thermState.startX + (finalX - thermState.startX) * t;
+                    thermState.y = thermState.startY; // keep y constant
 
-          if (t < 1) {
-            requestAnimationFrame(animateMove);
-          } else {
-            // Snap to final position
-            thermState.x = finalX;
-            thermState.behindPig = true;
+                    if (t < 1) {
+                        requestAnimationFrame(animateMove);
+                    } else {
+                        // Snap to final position
+                        thermState.x = finalX;
+                        thermState.behindPig = true;
 
-            // Now advance thermometer frames
-            let frameTimers = [];
-            let frames = [1, 2, 3];
-            frames.forEach((frameIdx, i) => {
-              frameTimers.push(setTimeout(() => { if (thermState) thermState.frame = frameIdx; }, 500 * (i + 1)));
-            });
+                        // Now advance thermometer frames
+                        let frameTimers = [];
+                        let frames = [1, 2, 3];
+                        frames.forEach((frameIdx, i) => {
+                            frameTimers.push(setTimeout(() => { if (thermState) thermState.frame = frameIdx; }, 500 * (i + 1)));
+                        });
 
-            // After all frames, hold for 1s, then fade out over 2s
-            setTimeout(() => {
-              let fadeStart = performance.now();
-              function doFade() {
-                let fNow = performance.now();
-                let fElapsed = fNow - fadeStart;
-                let fT = Math.min(fElapsed / 2000, 1);
-                if (thermState) thermState.alpha = 1 - fT;
-                if (fT < 1) {
-                  requestAnimationFrame(doFade);
-                } else {
-                  // End of animation: cleanup, resume idle
-                  healSequenceActive = false;
-                  thermState = null;
-                  direction = preHealDirection;
-                  currentImg = preHealImg;
-                  startIdleJump();
-                  finishAction();
+                        // After all frames, hold for 1s, then fade out over 2s
+                        setTimeout(() => {
+                            let fadeStart = performance.now();
+                            function doFade() {
+                                let fNow = performance.now();
+                                let fElapsed = fNow - fadeStart;
+                                let fT = Math.min(fElapsed / 2000, 1);
+                                if (thermState) thermState.alpha = 1 - fT;
+                                if (fT < 1) {
+                                    requestAnimationFrame(doFade);
+                                } else {
+                                    // Thermometer fade is COMPLETE here.
+                                    thermState = null; // Clear thermometer state
+
+                                    // --- PILL ANIMATION AND PIG EATING SETUP ---
+                                    // This block now only runs AFTER the thermometer has completely faded.
+                                    // Position for the pill
+                                    const pillOffsetX = (preHealDirection === 1)
+                                        ? (petX + PET_WIDTH + 3) // Right side of pig
+                                        : (petX - PILL_WIDTH - 3); // Left side of pig
+                                    const pillOffsetY = petY + 20;
+
+                                    // Pick a random pill image frame
+                                    const randomPillFrame = Math.floor(Math.random() * pillImgs.length);
+
+                                    // Initialize pillstate to make it visible
+                                    pillstate = {
+                                        x: pillOffsetX,
+                                        y: pillOffsetY,
+                                        frame: randomPillFrame,
+                                        alpha: 1
+                                    };
+
+                                    // Pig changes to eating animation after 1 second of pill visibility
+                                    setTimeout(() => {
+                                        // Set pig to eating animation based on its initial direction
+                                        const eatingDuration = 1000;
+                                        const originalDirection = preHealDirection;
+
+                                        if (originalDirection === 1) { // Facing right
+                                            currentImg = pigRightEatImg;
+                                            direction = 1; // Keep direction consistent
+                                        } else { // Facing left
+                                            currentImg = pigLeftEatImg;
+                                            direction = -1; // Keep direction consistent
+                                        }
+
+                                        // After eating animation, revert pig to original idle image, hide pill, then pause
+                                        setTimeout(() => {
+                                            currentImg = preHealImg; // Restore the initial idle pig image
+                                            direction = originalDirection; // Ensure direction is correct for idle movement
+
+                                            pillstate = null; // Pill disappears now, after pig reverts to idle!
+
+                                            // NEW: Add a 1-second delay before finalizing the sequence and resuming movement
+                                            setTimeout(() => {
+                                                // End of the entire sequence: cleanup and resume idle
+                                                healSequenceActive = false; // Finally disable the sequence
+                                                startIdleJump(); // Resume pig's idle jumping
+                                                finishAction(); // Final action cleanup
+                                            }, 1000); // Pause for 1 second after pig reverts and pill disappears
+                                        }, eatingDuration); // Wait for 1 second of eating animation
+                                    }, 1000); // Pill remains visible for 1 second before eating animation starts
+                                    // --- END OF CHAINED PILL ANIMATION CODE ---
+                                }
+                            }
+                            doFade();
+                        }, 2000 + 500 * 3); // Total time for thermometer animation (move + frames + hold)
+                    }
                 }
-              }
-              doFade();
-            }, 2000 + 500 * 3); // Hold for 1s after last frame (total ~3.5s after move starts)
-          }
+                animateMove(); // Start thermometer movement animation
+            }
         }
-        animateMove();
-      }
+
+        // Keep calling healSequenceStep as long as healSequenceActive is true
+        // This allows drawThermometerOverlay and drawPillOverlay to render
+        if (healSequenceActive) requestAnimationFrame(healSequenceStep);
     }
 
-    if (healSequenceActive) requestAnimationFrame(healSequenceStep);
-  }
-
-  healSequenceStep();
-
+    // Initial call to start the sequence
+    healSequenceStep();
 }, "heal");
+
+
 
 
 // ===============================
@@ -1126,36 +1211,41 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// ===============================
 // SECTION 14: STARTUP
-// ===============================
 window.addEventListener('DOMContentLoaded', () => {
-  if (window.__pet_loaded__) return;
-  window.__pet_loaded__ = true;
-  const versionSpan = document.getElementById('versionid');
-  if (versionSpan) versionSpan.textContent = versionid;
-  resizeCanvas();
-  updateAllBars();
- Promise.all([
-  loadImages([
-    petImgLeft, petImgRight, petImgSleep, petImgSleepR,
-    pigLeftEatImg, pigRightEatImg,
-    ...cakeImgs,
-    ...pillImgs,
-    ...thermLImgs,
-    ...thermRImgs
-  ]),
-  loadBallImages()
-])
+    if (window.__pet_loaded__) return;
+    window.__pet_loaded__ = true;
+    const versionSpan = document.getElementById('versionid');
+    if (versionSpan) versionSpan.textContent = versionid;
+    resizeCanvas();
+    updateAllBars();
+
+    // Collect all image elements into a single array for loading
+    const allImageElements = [
+        petImgLeft, petImgRight, petImgSleep, petImgSleepR,
+        pigLeftEatImg, pigRightEatImg,
+        ...cakeImgs,
+        ...pillImgs,
+        ...thermLImgs,
+        ...thermRImgs
+    ];
+
+    Promise.all([
+        loadImages(allImageElements), // Use the new general loadImages
+        loadBallImages()
+    ])
     .then(() => {
-      petX = canvas.width - PET_WIDTH - 10;
-      petY = canvas.height - PET_HEIGHT;
-      currentImg = petImgLeft;
-      resumeDirection = direction;
-      resumeImg = currentImg;
-      masterUpdateDrawRoutine();
+        console.log("All essential images loaded successfully!"); // Debugging line
+        petX = canvas.width - PET_WIDTH - 10;
+        petY = canvas.height - PET_HEIGHT;
+        currentImg = petImgLeft; // Ensure this is set after loading
+        resumeDirection = direction;
+        resumeImg = currentImg;
+        masterUpdateDrawRoutine();
     })
     .catch((err) => {
-      console.error("One or more images failed to load.", err);
+        console.error("One or more images failed to load, cannot start app.", err);
+        // Optionally display a user-friendly error message
+        alert("Failed to load game assets. Please check your internet connection and try again.");
     });
 });
